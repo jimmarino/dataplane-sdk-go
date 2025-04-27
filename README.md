@@ -109,9 +109,10 @@ func main() {
         Build()
 
     if err != nil {
-        fmt.Printf("Failed to build SDK: %v\n", err)
+        fmt.Printf("Failed to launch SDK: %v\n", err)
         return
     }
 
+    // hook handlers to the Dataplane Singalling API 
 }
 ```
