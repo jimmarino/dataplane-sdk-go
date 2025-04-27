@@ -64,13 +64,54 @@ qualities of service, recovery, and error handling.
 ## Usage Example
 
 ``` go
-sdk := DataPlaneSDK{
-    Store: myStore,
-    TrxContext: myTrxContext,
-    OnProvision: myProvisionHandler,
-    OnStart: myStartHandler,
-    OnTerminate: myTerminateHandler,
-    OnSuspend: mySuspendHandler,
-    OnRecover: myRecoverHandler,
+import (
+    "context"
+    "fmt"
+)
+
+func main() {
+    // Create handlers for operations
+    provisionHandler := func(ctx context.Context, flow *DataFlow) (*DataFlowResponseMessage, error) {
+        // handle provisioning logic
+    }
+
+    startHandler := func(ctx context.Context, flow *DataFlow) (*DataFlowResponseMessage, error) {
+        // handle start logic
+    }
+
+    terminateHandler := func(ctx context.Context, flow *DataFlow) error {
+        // handle termination logic
+    }
+
+    suspendHandler := func(ctx context.Context, flow *DataFlow) error {
+        // handle suspend logic
+    }
+
+    recoverHandler := func(ctx context.Context, flow *DataFlow) error {
+        // handle recovery logic
+    }
+
+    // Create a store implementation
+    store := // implementation of DataplaneStore interface
+
+    // Create a transaction context implementation
+    trxContext := // implementation of TransactionContext interface
+
+    // Use the builder to create the SDK instance
+    sdk, err := NewDataPlaneSDKBuilder().
+        Store(store).
+        TransactionContext(trxContext).
+        OnProvision(provisionHandler).
+        OnStart(startHandler).
+        OnTerminate(terminateHandler).
+        OnSuspend(suspendHandler).
+        OnRecover(recoverHandler).
+        Build()
+
+    if err != nil {
+        fmt.Printf("Failed to build SDK: %v\n", err)
+        return
+    }
+
 }
 ```

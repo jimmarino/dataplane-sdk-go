@@ -192,3 +192,74 @@ func (dsdk *DataPlaneSDK) updateFlowState(ctx context.Context, id string, newSta
 	}
 	return nil
 }
+
+type DataPlaneSDKBuilder struct {
+	sdk *DataPlaneSDK
+}
+
+func NewDataPlaneSDKBuilder() *DataPlaneSDKBuilder {
+	return &DataPlaneSDKBuilder{
+		sdk: &DataPlaneSDK{},
+	}
+}
+
+func (b *DataPlaneSDKBuilder) Store(store DataplaneStore) *DataPlaneSDKBuilder {
+	b.sdk.Store = store
+	return b
+}
+
+func (b *DataPlaneSDKBuilder) TransactionContext(trxContext TransactionContext) *DataPlaneSDKBuilder {
+	b.sdk.TrxContext = trxContext
+	return b
+}
+
+func (b *DataPlaneSDKBuilder) OnProvision(handler DataFlowProcessor) *DataPlaneSDKBuilder {
+	b.sdk.OnProvision = handler
+	return b
+}
+
+func (b *DataPlaneSDKBuilder) OnStart(handler DataFlowProcessor) *DataPlaneSDKBuilder {
+	b.sdk.OnStart = handler
+	return b
+}
+
+func (b *DataPlaneSDKBuilder) OnTerminate(handler DataFlowHandler) *DataPlaneSDKBuilder {
+	b.sdk.OnTerminate = handler
+	return b
+}
+
+func (b *DataPlaneSDKBuilder) OnSuspend(handler DataFlowHandler) *DataPlaneSDKBuilder {
+	b.sdk.OnSuspend = handler
+	return b
+}
+
+func (b *DataPlaneSDKBuilder) OnRecover(handler DataFlowHandler) *DataPlaneSDKBuilder {
+	b.sdk.OnRecover = handler
+	return b
+}
+
+func (b *DataPlaneSDKBuilder) Build() (*DataPlaneSDK, error) {
+	if b.sdk.Store == nil {
+		return nil, errors.New("store is required")
+	}
+	if b.sdk.TrxContext == nil {
+		return nil, errors.New("transaction context is required")
+	}
+	if b.sdk.OnProvision == nil {
+		return nil, errors.New("OnProvision handler is required")
+	}
+	if b.sdk.OnStart == nil {
+		return nil, errors.New("OnStart handler is required")
+	}
+	if b.sdk.OnTerminate == nil {
+		return nil, errors.New("OnTerminate handler is required")
+	}
+	if b.sdk.OnSuspend == nil {
+		return nil, errors.New("OnSuspend handler is required")
+	}
+	if b.sdk.OnRecover == nil {
+		return nil, errors.New("OnRecover handler is required")
+	}
+
+	return b.sdk, nil
+}
