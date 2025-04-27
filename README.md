@@ -1,7 +1,7 @@
-# Go Dataplane SDK
+# Go Data Plane SDK
 
-A Dataplane SDK for Go. This SDK provides components for creating Go-based dataplanes that interface with Dataspace
-Protocol Control Planes via the `Dataplane Signalling API`. The SDK includes state management, support for reliable
+A Data Plane SDK for Go. This SDK provides components for creating Go-based data planes that interface with Dataspace
+Protocol Control Planes via the `Data Plane Signalling API`. The SDK includes state management, support for reliable
 qualities of service, recovery, and error handling.
 
 ## Main Operations
@@ -92,7 +92,7 @@ func main() {
     }
 
     // Create a store implementation
-    store := // implementation of DataplaneStore interface
+    store := // implementation of Data PlaneStore interface
 
     // Create a transaction context implementation
     trxContext := // implementation of TransactionContext interface
@@ -113,6 +113,6 @@ func main() {
         return
     }
 
-    // hook handlers to the Dataplane Singalling API 
+    // hook handlers to the Data Plane Singalling API 
 }
 ```
