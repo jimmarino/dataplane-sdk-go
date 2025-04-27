@@ -4,22 +4,6 @@ A Dataplane SDK for Go. This SDK provides components for creating Go-based datap
 Protocol Control Planes via the `Dataplane Signalling API`. The SDK includes state management, support for reliable
 qualities of service, recovery, and error handling.
 
-## Core Components
-
-### DataPlaneSDK Structure
-
-``` go
-type DataPlaneSDK struct {
-    Store      DataplaneStore
-    TrxContext TransactionContext
-    OnProvision DataFlowProcessor
-    OnStart     DataFlowProcessor
-    OnTerminate DataFlowHandler
-    OnSuspend   DataFlowHandler
-    OnRecover   DataFlowHandler
-}
-```
-
 ## Main Operations
 
 ### 1. Provision
