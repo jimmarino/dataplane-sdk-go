@@ -97,20 +97,20 @@ const (
 
 type DataFlow struct {
 	ID                     string
+	RuntimeId              string
 	UpdatedAt              int64
 	CreatedAt              int64
 	ParticipantContextId   string
 	DataspaceContext       string
 	CounterpartyId         string
+	CallbackAddress        CallbackURL
+	TransferType           TransferType
 	State                  DataFlowState
 	StateCount             uint
 	StateTimestamp         int64
 	SourceDataAddress      DataAddress
 	DestinationDataAddress DataAddress
-	CallbackAddress        CallbackURL
-	TransferType           TransferType
 	ErrorDetail            string
-	RuntimeId              string
 }
 
 type DataFlowBuilder struct {
