@@ -1,7 +1,7 @@
 ![](./docs/logo/go.sdk.logo.stacked.svg)
 
 A Data Plane SDK for Go. This SDK provides components for creating Go-based data planes that interface with Dataspace
-Protocol Control Planes via the `Data Plane Signalling API`. The SDK includes state management, support for reliable
+Protocol Control Planes via the `Data Plane Signaling API`. The SDK includes state management, support for reliable
 qualities of service, recovery, and error handling.
 
 ## Main Operations
@@ -113,6 +113,6 @@ func main() {
         return
     }
 
-    // hook handlers to the Data Plane Singalling API 
+    // hook handlers to the Data Plane Signaling API 
 }
 ```
