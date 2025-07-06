@@ -11,6 +11,8 @@ var (
 	ErrConflict     = errors.New("conflict")
 )
 
+//go:generate go run github.com/vektra/mockery/v2@latest --name=DataplaneStore --output=. --outpkg=dsdk --filename=mock_dataplane_store_test.go --structname=MockDataplaneStore --with-expecter --inpackage
+
 // DataplaneStore defines the extension point for finding, creating, saving, and iterating over DataFlow entities.
 type DataplaneStore interface {
 	// FindById returns a DataFlow for the given id or an error.
@@ -23,7 +25,7 @@ type DataplaneStore interface {
 
 // TransactionContext defines an extension point for executing operations within a transactional context.
 type TransactionContext interface {
-	Execute(func(ctx context.Context) error) error
+	Execute(ctx context.Context, callback func(ctx context.Context) error) error
 }
 
 // Iterator for store operations

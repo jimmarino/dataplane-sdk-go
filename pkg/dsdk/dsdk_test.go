@@ -27,6 +27,6 @@ func Test_DataPlaneSDK_Start(t *testing.T) {
 type mockTrxContext struct {
 }
 
-func (c *mockTrxContext) Execute(fn func(ctx context.Context) error) error {
+func (c *mockTrxContext) Execute(ctx context.Context, fn func(ctx context.Context) error) error {
 	return fn(context.TODO())
 }

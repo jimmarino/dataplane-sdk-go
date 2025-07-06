@@ -5,7 +5,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
-	"github.com/jimmarino/dataplane-sdk-go/pkg/dsdk"
+	"github.com/metaform/dataplane-sdk-go/pkg/dsdk"
 )
 
 type PostgresStore struct {

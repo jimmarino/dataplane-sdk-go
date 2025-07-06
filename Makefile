@@ -7,9 +7,6 @@ GOGET=$(GOCMD) get
 BINARY_NAME=dataplane-sdk-go
 GOBUILD=$(GOCMD) build
 
-# Tools
-MOCKERY_CMD=$(GOPATH)/bin/mockery
-
 all: test
 
 help: ## Display this help
@@ -21,10 +18,9 @@ clean: ## Clean build artifacts
 
 deps: ## Get dependencies
 	$(GOGET) -v -t -d ./...
-	$(GOGET) github.com/vektra/mockery/v2@latest
 
-mock: ## Generate mocks
-	$(MOCKERY_CMD) --config .mockery.yml
+mock: ## Generate mocks using go generate
+	$(GOCMD) generate ./...
 
 test: ## Run tests without postgres
 	$(GOTEST) -v ./... -tags !postgres
@@ -47,8 +43,3 @@ build: ## Build the binary
 	$(GOBUILD) -v ./...
 
 ci: deps mock lint test test-postgres ## Run all CI tasks
-
-# Install required tools
-install-tools: ## Install required tools
-	$(GOGET) github.com/vektra/mockery/v2@latest
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOPATH)/bin

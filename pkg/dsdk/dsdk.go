@@ -172,7 +172,7 @@ func (dsdk *DataPlaneSDK) execute(ctx context.Context, callback func(ctx2 contex
 	case <-ctx.Done():
 		return ctx.Err()
 	default:
-		return dsdk.TrxContext.Execute(callback)
+		return dsdk.TrxContext.Execute(ctx, callback)
 	}
 }
 

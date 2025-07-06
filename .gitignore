@@ -25,7 +25,8 @@ go.work.sum
 .env
 
 # Mockery generated files
-mocks_test.go
+mocks/
+mock_*
 
 /.idea
 /coverage.html

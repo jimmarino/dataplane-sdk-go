@@ -1,4 +1,4 @@
-module github.com/jimmarino/dataplane-sdk-go
+module github.com/metaform/dataplane-sdk-go
 
 go 1.24.1
 
