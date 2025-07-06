@@ -109,7 +109,7 @@ func main() {
         Build()
 
     if err != nil {
-        fmt.Printf("Failed to launch SDK: %v\n", err)
+        fmt.Printf("Failed to launch SDK: %w\n", err)
         return
     }
 
