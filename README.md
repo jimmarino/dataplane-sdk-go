@@ -6,10 +6,10 @@ qualities of service, recovery, and error handling.
 
 ## Main Operations
 
-### 1. Provision
+### 1. Prepare
 
-- Purpose: Provisions an endpoint for receiving data
-- Function: `Provision(ctx context.Context, message DataFlowProvisionMessage) (*DataFlowResponseMessage, error)`
+- Purpose: Parepares for receiving data
+- Function: `Prepare(ctx context.Context, message DataFlowProvisionMessage) (*DataFlowResponseMessage, error)`
 - Returns: Response message or error
 
 ### 2. Start
@@ -41,7 +41,7 @@ qualities of service, recovery, and error handling.
 ### State Management
 
 - Maintains different states for data flows:
-    - Provisioning
+    - Preparing
     - Started
     - Terminated
     - Suspended
@@ -55,7 +55,7 @@ qualities of service, recovery, and error handling.
 
 ## Extension Points
 
-- : Custom provisioning logic `OnProvision`
+- : Custom prepare logic `OnPrepare`
 - : Custom start logic `OnStart`
 - : Custom termination logic `OnTerminate`
 - : Custom suspension logic `OnSuspend`
@@ -72,7 +72,7 @@ import (
 func main() {
     // Create handlers for operations
     provisionHandler := func(ctx context.Context, flow *DataFlow) (*DataFlowResponseMessage, error) {
-        // handle provisioning logic
+        // handle prepare logic
     }
 
     startHandler := func(ctx context.Context, flow *DataFlow) (*DataFlowResponseMessage, error) {
@@ -101,7 +101,7 @@ func main() {
     sdk, err := NewDataPlaneSDKBuilder().
         Store(store).
         TransactionContext(trxContext).
-        OnProvision(provisionHandler).
+        OnPrepare(provisionHandler).
         OnStart(startHandler).
         OnTerminate(terminateHandler).
         OnSuspend(suspendHandler).

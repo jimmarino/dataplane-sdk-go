@@ -152,8 +152,8 @@ func TestDataFlowBuilder_Build(t *testing.T) {
 			if flow.DataspaceContext == "" {
 				t.Error("DataspaceContext is empty")
 			}
-			if flow.CounterpartyId == "" {
-				t.Error("CounterpartyId is empty")
+			if flow.CounterPartyId == "" {
+				t.Error("CounterPartyId is empty")
 			}
 			if flow.StateTimestamp == 0 {
 				t.Error("StateTimestamp is zero")

@@ -16,18 +16,18 @@ type DataPlaneSDK struct {
 	Store      DataplaneStore
 	TrxContext TransactionContext
 
-	OnProvision DataFlowProcessor
+	OnPrepare   DataFlowProcessor
 	OnStart     DataFlowProcessor
 	OnTerminate DataFlowHandler
 	OnSuspend   DataFlowHandler
 	OnRecover   DataFlowHandler
 }
 
-// Provision is called on the consumer to provision an endpoint for receiving data.
-// It invokes the OnProvision callback and persists the created flow. Returns a response or an error if the process fails.
-func (dsdk *DataPlaneSDK) Provision(ctx context.Context, message DataFlowProvisionMessage) (*DataFlowResponseMessage, error) {
-	return dsdk.processFlow(ctx, message.ProcessId, Provisioning, func(ctx context.Context, flow *DataFlow) (*DataFlowResponseMessage, error) {
-		response, err := dsdk.OnProvision(ctx, flow)
+// Prepare is called on the consumer to prepare for receiving data.
+// It invokes the OnPrepare callback and persists the created flow. Returns a response or an error if the process fails.
+func (dsdk *DataPlaneSDK) Prepare(ctx context.Context, message DataFlowPrepareMessage) (*DataFlowResponseMessage, error) {
+	return dsdk.processFlow(ctx, message.ProcessId, Completed, func(ctx context.Context, flow *DataFlow) (*DataFlowResponseMessage, error) {
+		response, err := dsdk.OnPrepare(ctx, flow)
 		if err != nil {
 			return nil, fmt.Errorf("provision data flow: %w", err)
 		}
@@ -213,8 +213,8 @@ func (b *DataPlaneSDKBuilder) TransactionContext(trxContext TransactionContext) 
 	return b
 }
 
-func (b *DataPlaneSDKBuilder) OnProvision(handler DataFlowProcessor) *DataPlaneSDKBuilder {
-	b.sdk.OnProvision = handler
+func (b *DataPlaneSDKBuilder) OnPrepare(handler DataFlowProcessor) *DataPlaneSDKBuilder {
+	b.sdk.OnPrepare = handler
 	return b
 }
 
@@ -245,8 +245,8 @@ func (b *DataPlaneSDKBuilder) Build() (*DataPlaneSDK, error) {
 	if b.sdk.TrxContext == nil {
 		return nil, errors.New("transaction context is required")
 	}
-	if b.sdk.OnProvision == nil {
-		return nil, errors.New("OnProvision handler is required")
+	if b.sdk.OnPrepare == nil {
+		return nil, errors.New("OnPrepare handler is required")
 	}
 	if b.sdk.OnStart == nil {
 		return nil, errors.New("OnStart handler is required")

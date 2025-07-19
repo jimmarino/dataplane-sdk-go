@@ -57,7 +57,6 @@ type TransferType struct {
 }
 
 type DataFlowBaseMessage struct {
-	// ParticipantContext string
 	MessageId              string       `json:"messageId"` // NEW
 	ParticipantId          string       `json:"participantId"`
 	ProcessId              string       `json:"processId"`
@@ -72,27 +71,27 @@ type DataFlowStartMessage struct {
 	SourceDataAddress DataAddress `json:"sourceDataAddress"`
 }
 
-type DataFlowProvisionMessage struct {
+type DataFlowPrepareMessage struct {
 	DataFlowBaseMessage
 }
 
 type DataFlowResponseMessage struct {
-	DataplaneId  string      `json:"dataplaneId"`
-	DataAddress  DataAddress `json:"dataAddress"`
-	Provisioning bool        `json:"provisioning"`
+	DataplaneId string      `json:"dataplaneId"`
+	DataAddress DataAddress `json:"dataAddress"`
+	Completed   bool        `json:"completed"`
 }
 
 type DataFlowState int
 
 const (
-	Provisioning DataFlowState = 50
-	Received     DataFlowState = 100
-	Started      DataFlowState = 150
-	Completed    DataFlowState = 200
-	Suspended    DataFlowState = 225
-	Terminated   DataFlowState = 250
-	Failed       DataFlowState = 300
-	Notified     DataFlowState = 400
+	Uninitialized DataFlowState = 0
+	Preparing     DataFlowState = 50
+	Prepared      DataFlowState = 100
+	Starting      DataFlowState = 150
+	Started       DataFlowState = 200
+	Completed     DataFlowState = 250
+	Suspended     DataFlowState = 300
+	Terminated    DataFlowState = 350
 )
 
 type DataFlow struct {
@@ -102,7 +101,7 @@ type DataFlow struct {
 	CreatedAt              int64
 	ParticipantContextId   string
 	DataspaceContext       string
-	CounterpartyId         string
+	CounterPartyId         string
 	CallbackAddress        CallbackURL
 	TransferType           TransferType
 	State                  DataFlowState
@@ -111,6 +110,75 @@ type DataFlow struct {
 	SourceDataAddress      DataAddress
 	DestinationDataAddress DataAddress
 	ErrorDetail            string
+}
+
+// State transition methods with validation
+func (df *DataFlow) transitionToPreparing() error {
+	if df.State != Uninitialized {
+		return fmt.Errorf("invalid transition: cannot transition from %v to Preparing", df.State)
+	}
+	df.State = Preparing
+	df.StateTimestamp = time.Now().UnixMilli()
+	df.StateCount++
+	return nil
+}
+
+func (df *DataFlow) transitionToPrepared() error {
+	if df.State != Uninitialized && df.State != Preparing {
+		return fmt.Errorf("invalid transition: cannot transition from %v to Prepared", df.State)
+	}
+	df.State = Prepared
+	df.StateTimestamp = time.Now().UnixMilli()
+	df.StateCount++
+	return nil
+}
+
+func (df *DataFlow) transitionToStarting() error {
+	if df.State != Uninitialized && df.State != Prepared {
+		return fmt.Errorf("invalid transition: cannot transition from %v to Starting", df.State)
+	}
+	df.State = Starting
+	df.StateTimestamp = time.Now().UnixMilli()
+	df.StateCount++
+	return nil
+}
+
+func (df *DataFlow) transitionToStarted() error {
+	if df.State != Uninitialized && df.State != Starting && df.State != Suspended {
+		return fmt.Errorf("invalid transition: cannot transition from %v to Started", df.State)
+	}
+	df.State = Started
+	df.StateTimestamp = time.Now().UnixMilli()
+	df.StateCount++
+	return nil
+}
+
+func (df *DataFlow) transitionToSuspended() error {
+	if df.State != Started {
+		return fmt.Errorf("invalid transition: cannot transition from %v to Suspended", df.State)
+	}
+	df.State = Suspended
+	df.StateTimestamp = time.Now().UnixMilli()
+	df.StateCount++
+	return nil
+}
+
+func (df *DataFlow) transitionToCompleted() error {
+	if df.State != Started {
+		return fmt.Errorf("invalid transition: cannot transition from %v to Completed", df.State)
+	}
+	df.State = Completed
+	df.StateTimestamp = time.Now().UnixMilli()
+	df.StateCount++
+	return nil
+}
+
+func (df *DataFlow) transitionToTerminated() error {
+	// Any state can transition to terminated
+	df.State = Terminated
+	df.StateTimestamp = time.Now().UnixMilli()
+	df.StateCount++
+	return nil
 }
 
 type DataFlowBuilder struct {
@@ -147,7 +215,7 @@ func (b *DataFlowBuilder) DataspaceContext(context string) *DataFlowBuilder {
 }
 
 func (b *DataFlowBuilder) CounterpartyId(id string) *DataFlowBuilder {
-	b.dataFlow.CounterpartyId = id
+	b.dataFlow.CounterPartyId = id
 	return b
 }
 
@@ -223,8 +291,8 @@ func (b *DataFlowBuilder) Build() (*DataFlow, error) {
 		validationErrs = append(validationErrs, "DataspaceContext is required")
 	}
 
-	if b.dataFlow.CounterpartyId == "" {
-		validationErrs = append(validationErrs, "CounterpartyId is required")
+	if b.dataFlow.CounterPartyId == "" {
+		validationErrs = append(validationErrs, "CounterPartyId is required")
 	}
 
 	if b.dataFlow.SourceDataAddress.Properties == nil {
