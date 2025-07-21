@@ -27,40 +27,39 @@ func TestDataFlow_transitionToPreparing(t *testing.T) {
 			initialState: Uninitialized,
 			expectErr:    false,
 		},
-		"invalid transition from Preparing": {
+		"idempotent transition from Preparing": {
 			initialState: Preparing,
-			expectErr:    true,
-			expectedErr:  "invalid transition: cannot transition from 50 to Preparing",
+			expectErr:    false,
 		},
 		"invalid transition from Prepared": {
 			initialState: Prepared,
 			expectErr:    true,
-			expectedErr:  "invalid transition: cannot transition from 100 to Preparing",
+			expectedErr:  "invalid transition: cannot transition from PREPARED to PREPARING",
 		},
 		"invalid transition from Starting": {
 			initialState: Starting,
 			expectErr:    true,
-			expectedErr:  "invalid transition: cannot transition from 150 to Preparing",
+			expectedErr:  "invalid transition: cannot transition from STARTING to PREPARING",
 		},
 		"invalid transition from Started": {
 			initialState: Started,
 			expectErr:    true,
-			expectedErr:  "invalid transition: cannot transition from 200 to Preparing",
+			expectedErr:  "invalid transition: cannot transition from STARTED to PREPARING",
 		},
 		"invalid transition from Completed": {
 			initialState: Completed,
 			expectErr:    true,
-			expectedErr:  "invalid transition: cannot transition from 250 to Preparing",
+			expectedErr:  "invalid transition: cannot transition from COMPLETED to PREPARING",
 		},
 		"invalid transition from Suspended": {
 			initialState: Suspended,
 			expectErr:    true,
-			expectedErr:  "invalid transition: cannot transition from 300 to Preparing",
+			expectedErr:  "invalid transition: cannot transition from SUSPENDED to PREPARING",
 		},
 		"invalid transition from Terminated": {
 			initialState: Terminated,
 			expectErr:    true,
-			expectedErr:  "invalid transition: cannot transition from 350 to Preparing",
+			expectedErr:  "invalid transition: cannot transition from TERMINATED to PREPARING",
 		},
 	}
 
@@ -73,7 +72,7 @@ func TestDataFlow_transitionToPreparing(t *testing.T) {
 			initialStateCount := df.StateCount
 			initialTimestamp := df.StateTimestamp
 
-			err := df.transitionToPreparing()
+			err := df.TransitionToPreparing()
 
 			if tc.expectErr {
 				if err == nil {
@@ -100,11 +99,21 @@ func TestDataFlow_transitionToPreparing(t *testing.T) {
 				if df.State != Preparing {
 					t.Errorf("expected state %v, got %v", Preparing, df.State)
 				}
-				if df.StateCount != initialStateCount+1 {
-					t.Errorf("expected state count %v, got %v", initialStateCount+1, df.StateCount)
-				}
-				if df.StateTimestamp <= initialTimestamp {
-					t.Errorf("state timestamp should be updated")
+				// For idempotent transitions, state count and timestamp should not change
+				if tc.initialState == Preparing {
+					if df.StateCount != initialStateCount {
+						t.Errorf("state count should not change for idempotent transition, expected %v, got %v", initialStateCount, df.StateCount)
+					}
+					if df.StateTimestamp != initialTimestamp {
+						t.Errorf("state timestamp should not change for idempotent transition")
+					}
+				} else {
+					if df.StateCount != initialStateCount+1 {
+						t.Errorf("expected state count %v, got %v", initialStateCount+1, df.StateCount)
+					}
+					if df.StateTimestamp <= initialTimestamp {
+						t.Errorf("state timestamp should be updated")
+					}
 				}
 			}
 		})
@@ -125,35 +134,34 @@ func TestDataFlow_transitionToPrepared(t *testing.T) {
 			initialState: Preparing,
 			expectErr:    false,
 		},
-		"invalid transition from Prepared": {
+		"idempotent transition from Prepared": {
 			initialState: Prepared,
-			expectErr:    true,
-			expectedErr:  "invalid transition: cannot transition from 100 to Prepared",
+			expectErr:    false,
 		},
 		"invalid transition from Starting": {
 			initialState: Starting,
 			expectErr:    true,
-			expectedErr:  "invalid transition: cannot transition from 150 to Prepared",
+			expectedErr:  "invalid transition: cannot transition from STARTING to PREPARED",
 		},
 		"invalid transition from Started": {
 			initialState: Started,
 			expectErr:    true,
-			expectedErr:  "invalid transition: cannot transition from 200 to Prepared",
+			expectedErr:  "invalid transition: cannot transition from STARTED to PREPARED",
 		},
 		"invalid transition from Completed": {
 			initialState: Completed,
 			expectErr:    true,
-			expectedErr:  "invalid transition: cannot transition from 250 to Prepared",
+			expectedErr:  "invalid transition: cannot transition from COMPLETED to PREPARED",
 		},
 		"invalid transition from Suspended": {
 			initialState: Suspended,
 			expectErr:    true,
-			expectedErr:  "invalid transition: cannot transition from 300 to Prepared",
+			expectedErr:  "invalid transition: cannot transition from SUSPENDED to PREPARED",
 		},
 		"invalid transition from Terminated": {
 			initialState: Terminated,
 			expectErr:    true,
-			expectedErr:  "invalid transition: cannot transition from 350 to Prepared",
+			expectedErr:  "invalid transition: cannot transition from TERMINATED to PREPARED",
 		},
 	}
 
@@ -166,7 +174,7 @@ func TestDataFlow_transitionToPrepared(t *testing.T) {
 			initialStateCount := df.StateCount
 			initialTimestamp := df.StateTimestamp
 
-			err := df.transitionToPrepared()
+			err := df.TransitionToPrepared()
 
 			if tc.expectErr {
 				if err == nil {
@@ -193,11 +201,21 @@ func TestDataFlow_transitionToPrepared(t *testing.T) {
 				if df.State != Prepared {
 					t.Errorf("expected state %v, got %v", Prepared, df.State)
 				}
-				if df.StateCount != initialStateCount+1 {
-					t.Errorf("expected state count %v, got %v", initialStateCount+1, df.StateCount)
-				}
-				if df.StateTimestamp <= initialTimestamp {
-					t.Errorf("state timestamp should be updated")
+				// For idempotent transitions, state count and timestamp should not change
+				if tc.initialState == Prepared {
+					if df.StateCount != initialStateCount {
+						t.Errorf("state count should not change for idempotent transition, expected %v, got %v", initialStateCount, df.StateCount)
+					}
+					if df.StateTimestamp != initialTimestamp {
+						t.Errorf("state timestamp should not change for idempotent transition")
+					}
+				} else {
+					if df.StateCount != initialStateCount+1 {
+						t.Errorf("expected state count %v, got %v", initialStateCount+1, df.StateCount)
+					}
+					if df.StateTimestamp <= initialTimestamp {
+						t.Errorf("state timestamp should be updated")
+					}
 				}
 			}
 		})
@@ -217,36 +235,35 @@ func TestDataFlow_transitionToStarting(t *testing.T) {
 		"invalid transition from Preparing": {
 			initialState: Preparing,
 			expectErr:    true,
-			expectedErr:  "invalid transition: cannot transition from 50 to Starting",
+			expectedErr:  "invalid transition: cannot transition from PREPARING to STARTING",
 		},
 		"valid transition from Prepared": {
 			initialState: Prepared,
 			expectErr:    false,
 		},
-		"invalid transition from Starting": {
+		"idempotent transition from Starting": {
 			initialState: Starting,
-			expectErr:    true,
-			expectedErr:  "invalid transition: cannot transition from 150 to Starting",
+			expectErr:    false,
 		},
 		"invalid transition from Started": {
 			initialState: Started,
 			expectErr:    true,
-			expectedErr:  "invalid transition: cannot transition from 200 to Starting",
+			expectedErr:  "invalid transition: cannot transition from STARTED to STARTING",
 		},
 		"invalid transition from Completed": {
 			initialState: Completed,
 			expectErr:    true,
-			expectedErr:  "invalid transition: cannot transition from 250 to Starting",
+			expectedErr:  "invalid transition: cannot transition from COMPLETED to STARTING",
 		},
 		"invalid transition from Suspended": {
 			initialState: Suspended,
 			expectErr:    true,
-			expectedErr:  "invalid transition: cannot transition from 300 to Starting",
+			expectedErr:  "invalid transition: cannot transition from SUSPENDED to STARTING",
 		},
 		"invalid transition from Terminated": {
 			initialState: Terminated,
 			expectErr:    true,
-			expectedErr:  "invalid transition: cannot transition from 350 to Starting",
+			expectedErr:  "invalid transition: cannot transition from TERMINATED to STARTING",
 		},
 	}
 
@@ -259,7 +276,7 @@ func TestDataFlow_transitionToStarting(t *testing.T) {
 			initialStateCount := df.StateCount
 			initialTimestamp := df.StateTimestamp
 
-			err := df.transitionToStarting()
+			err := df.TransitionToStarting()
 
 			if tc.expectErr {
 				if err == nil {
@@ -286,11 +303,21 @@ func TestDataFlow_transitionToStarting(t *testing.T) {
 				if df.State != Starting {
 					t.Errorf("expected state %v, got %v", Starting, df.State)
 				}
-				if df.StateCount != initialStateCount+1 {
-					t.Errorf("expected state count %v, got %v", initialStateCount+1, df.StateCount)
-				}
-				if df.StateTimestamp <= initialTimestamp {
-					t.Errorf("state timestamp should be updated")
+				// For idempotent transitions, state count and timestamp should not change
+				if tc.initialState == Starting {
+					if df.StateCount != initialStateCount {
+						t.Errorf("state count should not change for idempotent transition, expected %v, got %v", initialStateCount, df.StateCount)
+					}
+					if df.StateTimestamp != initialTimestamp {
+						t.Errorf("state timestamp should not change for idempotent transition")
+					}
+				} else {
+					if df.StateCount != initialStateCount+1 {
+						t.Errorf("expected state count %v, got %v", initialStateCount+1, df.StateCount)
+					}
+					if df.StateTimestamp <= initialTimestamp {
+						t.Errorf("state timestamp should be updated")
+					}
 				}
 			}
 		})
@@ -310,26 +337,25 @@ func TestDataFlow_transitionToStarted(t *testing.T) {
 		"invalid transition from Preparing": {
 			initialState: Preparing,
 			expectErr:    true,
-			expectedErr:  "invalid transition: cannot transition from 50 to Started",
+			expectedErr:  "invalid transition: cannot transition from PREPARING to STARTED",
 		},
 		"invalid transition from Prepared": {
 			initialState: Prepared,
 			expectErr:    true,
-			expectedErr:  "invalid transition: cannot transition from 100 to Started",
+			expectedErr:  "invalid transition: cannot transition from PREPARED to STARTED",
 		},
 		"valid transition from Starting": {
 			initialState: Starting,
 			expectErr:    false,
 		},
-		"invalid transition from Started": {
+		"idempotent transition from Started": {
 			initialState: Started,
-			expectErr:    true,
-			expectedErr:  "invalid transition: cannot transition from 200 to Started",
+			expectErr:    false,
 		},
 		"invalid transition from Completed": {
 			initialState: Completed,
 			expectErr:    true,
-			expectedErr:  "invalid transition: cannot transition from 250 to Started",
+			expectedErr:  "invalid transition: cannot transition from COMPLETED to STARTED",
 		},
 		"valid transition from Suspended": {
 			initialState: Suspended,
@@ -338,7 +364,7 @@ func TestDataFlow_transitionToStarted(t *testing.T) {
 		"invalid transition from Terminated": {
 			initialState: Terminated,
 			expectErr:    true,
-			expectedErr:  "invalid transition: cannot transition from 350 to Started",
+			expectedErr:  "invalid transition: cannot transition from TERMINATED to STARTED",
 		},
 	}
 
@@ -351,7 +377,7 @@ func TestDataFlow_transitionToStarted(t *testing.T) {
 			initialStateCount := df.StateCount
 			initialTimestamp := df.StateTimestamp
 
-			err := df.transitionToStarted()
+			err := df.TransitionToStarted()
 
 			if tc.expectErr {
 				if err == nil {
@@ -378,11 +404,21 @@ func TestDataFlow_transitionToStarted(t *testing.T) {
 				if df.State != Started {
 					t.Errorf("expected state %v, got %v", Started, df.State)
 				}
-				if df.StateCount != initialStateCount+1 {
-					t.Errorf("expected state count %v, got %v", initialStateCount+1, df.StateCount)
-				}
-				if df.StateTimestamp <= initialTimestamp {
-					t.Errorf("state timestamp should be updated")
+				// For idempotent transitions, state count and timestamp should not change
+				if tc.initialState == Started {
+					if df.StateCount != initialStateCount {
+						t.Errorf("state count should not change for idempotent transition, expected %v, got %v", initialStateCount, df.StateCount)
+					}
+					if df.StateTimestamp != initialTimestamp {
+						t.Errorf("state timestamp should not change for idempotent transition")
+					}
+				} else {
+					if df.StateCount != initialStateCount+1 {
+						t.Errorf("expected state count %v, got %v", initialStateCount+1, df.StateCount)
+					}
+					if df.StateTimestamp <= initialTimestamp {
+						t.Errorf("state timestamp should be updated")
+					}
 				}
 			}
 		})
@@ -398,22 +434,22 @@ func TestDataFlow_transitionToSuspended(t *testing.T) {
 		"invalid transition from Uninitialized": {
 			initialState: Uninitialized,
 			expectErr:    true,
-			expectedErr:  "invalid transition: cannot transition from 0 to Suspended",
+			expectedErr:  "invalid transition: cannot transition from UNITIALIZED to SUSPENDED",
 		},
 		"invalid transition from Preparing": {
 			initialState: Preparing,
 			expectErr:    true,
-			expectedErr:  "invalid transition: cannot transition from 50 to Suspended",
+			expectedErr:  "invalid transition: cannot transition from PREPARING to SUSPENDED",
 		},
 		"invalid transition from Prepared": {
 			initialState: Prepared,
 			expectErr:    true,
-			expectedErr:  "invalid transition: cannot transition from 100 to Suspended",
+			expectedErr:  "invalid transition: cannot transition from PREPARED to SUSPENDED",
 		},
 		"invalid transition from Starting": {
 			initialState: Starting,
 			expectErr:    true,
-			expectedErr:  "invalid transition: cannot transition from 150 to Suspended",
+			expectedErr:  "invalid transition: cannot transition from STARTING to SUSPENDED",
 		},
 		"valid transition from Started": {
 			initialState: Started,
@@ -422,17 +458,16 @@ func TestDataFlow_transitionToSuspended(t *testing.T) {
 		"invalid transition from Completed": {
 			initialState: Completed,
 			expectErr:    true,
-			expectedErr:  "invalid transition: cannot transition from 250 to Suspended",
+			expectedErr:  "invalid transition: cannot transition from COMPLETED to SUSPENDED",
 		},
-		"invalid transition from Suspended": {
+		"idempotent transition from Suspended": {
 			initialState: Suspended,
-			expectErr:    true,
-			expectedErr:  "invalid transition: cannot transition from 300 to Suspended",
+			expectErr:    false,
 		},
 		"invalid transition from Terminated": {
 			initialState: Terminated,
 			expectErr:    true,
-			expectedErr:  "invalid transition: cannot transition from 350 to Suspended",
+			expectedErr:  "invalid transition: cannot transition from TERMINATED to SUSPENDED",
 		},
 	}
 
@@ -445,7 +480,7 @@ func TestDataFlow_transitionToSuspended(t *testing.T) {
 			initialStateCount := df.StateCount
 			initialTimestamp := df.StateTimestamp
 
-			err := df.transitionToSuspended()
+			err := df.TransitionToSuspended()
 
 			if tc.expectErr {
 				if err == nil {
@@ -472,11 +507,21 @@ func TestDataFlow_transitionToSuspended(t *testing.T) {
 				if df.State != Suspended {
 					t.Errorf("expected state %v, got %v", Suspended, df.State)
 				}
-				if df.StateCount != initialStateCount+1 {
-					t.Errorf("expected state count %v, got %v", initialStateCount+1, df.StateCount)
-				}
-				if df.StateTimestamp <= initialTimestamp {
-					t.Errorf("state timestamp should be updated")
+				// For idempotent transitions, state count and timestamp should not change
+				if tc.initialState == Suspended {
+					if df.StateCount != initialStateCount {
+						t.Errorf("state count should not change for idempotent transition, expected %v, got %v", initialStateCount, df.StateCount)
+					}
+					if df.StateTimestamp != initialTimestamp {
+						t.Errorf("state timestamp should not change for idempotent transition")
+					}
+				} else {
+					if df.StateCount != initialStateCount+1 {
+						t.Errorf("expected state count %v, got %v", initialStateCount+1, df.StateCount)
+					}
+					if df.StateTimestamp <= initialTimestamp {
+						t.Errorf("state timestamp should be updated")
+					}
 				}
 			}
 		})
@@ -492,41 +537,40 @@ func TestDataFlow_transitionToCompleted(t *testing.T) {
 		"invalid transition from Uninitialized": {
 			initialState: Uninitialized,
 			expectErr:    true,
-			expectedErr:  "invalid transition: cannot transition from 0 to Completed",
+			expectedErr:  "invalid transition: cannot transition from UNITIALIZED to COMPLETED",
 		},
 		"invalid transition from Preparing": {
 			initialState: Preparing,
 			expectErr:    true,
-			expectedErr:  "invalid transition: cannot transition from 50 to Completed",
+			expectedErr:  "invalid transition: cannot transition from PREPARING to COMPLETED",
 		},
 		"invalid transition from Prepared": {
 			initialState: Prepared,
 			expectErr:    true,
-			expectedErr:  "invalid transition: cannot transition from 100 to Completed",
+			expectedErr:  "invalid transition: cannot transition from PREPARED to COMPLETED",
 		},
 		"invalid transition from Starting": {
 			initialState: Starting,
 			expectErr:    true,
-			expectedErr:  "invalid transition: cannot transition from 150 to Completed",
+			expectedErr:  "invalid transition: cannot transition from STARTING to COMPLETED",
 		},
 		"valid transition from Started": {
 			initialState: Started,
 			expectErr:    false,
 		},
-		"invalid transition from Completed": {
+		"idempotent transition from Completed": {
 			initialState: Completed,
-			expectErr:    true,
-			expectedErr:  "invalid transition: cannot transition from 250 to Completed",
+			expectErr:    false,
 		},
 		"invalid transition from Suspended": {
 			initialState: Suspended,
 			expectErr:    true,
-			expectedErr:  "invalid transition: cannot transition from 300 to Completed",
+			expectedErr:  "invalid transition: cannot transition from SUSPENDED to COMPLETED",
 		},
 		"invalid transition from Terminated": {
 			initialState: Terminated,
 			expectErr:    true,
-			expectedErr:  "invalid transition: cannot transition from 350 to Completed",
+			expectedErr:  "invalid transition: cannot transition from TERMINATED to COMPLETED",
 		},
 	}
 
@@ -539,7 +583,7 @@ func TestDataFlow_transitionToCompleted(t *testing.T) {
 			initialStateCount := df.StateCount
 			initialTimestamp := df.StateTimestamp
 
-			err := df.transitionToCompleted()
+			err := df.TransitionToCompleted()
 
 			if tc.expectErr {
 				if err == nil {
@@ -566,11 +610,21 @@ func TestDataFlow_transitionToCompleted(t *testing.T) {
 				if df.State != Completed {
 					t.Errorf("expected state %v, got %v", Completed, df.State)
 				}
-				if df.StateCount != initialStateCount+1 {
-					t.Errorf("expected state count %v, got %v", initialStateCount+1, df.StateCount)
-				}
-				if df.StateTimestamp <= initialTimestamp {
-					t.Errorf("state timestamp should be updated")
+				// For idempotent transitions, state count and timestamp should not change
+				if tc.initialState == Completed {
+					if df.StateCount != initialStateCount {
+						t.Errorf("state count should not change for idempotent transition, expected %v, got %v", initialStateCount, df.StateCount)
+					}
+					if df.StateTimestamp != initialTimestamp {
+						t.Errorf("state timestamp should not change for idempotent transition")
+					}
+				} else {
+					if df.StateCount != initialStateCount+1 {
+						t.Errorf("expected state count %v, got %v", initialStateCount+1, df.StateCount)
+					}
+					if df.StateTimestamp <= initialTimestamp {
+						t.Errorf("state timestamp should be updated")
+					}
 				}
 			}
 		})
@@ -610,7 +664,7 @@ func TestDataFlow_transitionToTerminated(t *testing.T) {
 			initialState: Suspended,
 			expectErr:    false,
 		},
-		"valid transition from Terminated": {
+		"idempotent transition from Terminated": {
 			initialState: Terminated,
 			expectErr:    false,
 		},
@@ -625,7 +679,7 @@ func TestDataFlow_transitionToTerminated(t *testing.T) {
 			initialStateCount := df.StateCount
 			initialTimestamp := df.StateTimestamp
 
-			err := df.transitionToTerminated()
+			err := df.TransitionToTerminated()
 
 			if tc.expectErr {
 				if err == nil {
@@ -649,11 +703,21 @@ func TestDataFlow_transitionToTerminated(t *testing.T) {
 				if df.State != Terminated {
 					t.Errorf("expected state %v, got %v", Terminated, df.State)
 				}
-				if df.StateCount != initialStateCount+1 {
-					t.Errorf("expected state count %v, got %v", initialStateCount+1, df.StateCount)
-				}
-				if df.StateTimestamp <= initialTimestamp {
-					t.Errorf("state timestamp should be updated")
+				// For idempotent transitions, state count and timestamp should not change
+				if tc.initialState == Terminated {
+					if df.StateCount != initialStateCount {
+						t.Errorf("state count should not change for idempotent transition, expected %v, got %v", initialStateCount, df.StateCount)
+					}
+					if df.StateTimestamp != initialTimestamp {
+						t.Errorf("state timestamp should not change for idempotent transition")
+					}
+				} else {
+					if df.StateCount != initialStateCount+1 {
+						t.Errorf("expected state count %v, got %v", initialStateCount+1, df.StateCount)
+					}
+					if df.StateTimestamp <= initialTimestamp {
+						t.Errorf("state timestamp should be updated")
+					}
 				}
 			}
 		})
@@ -671,7 +735,7 @@ func TestDataFlow_TransitionsTimestampAndCounter(t *testing.T) {
 	timeBefore := time.Now().UnixMilli()
 
 	// Perform a valid transition
-	err := df.transitionToPreparing()
+	err := df.TransitionToPreparing()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -690,7 +754,7 @@ func TestDataFlow_TransitionsTimestampAndCounter(t *testing.T) {
 	}
 
 	// Test multiple transitions to ensure counter keeps incrementing
-	err = df.transitionToPrepared()
+	err = df.TransitionToPrepared()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -708,7 +772,7 @@ func TestDataFlow_TransitionFromZeroTimestamp(t *testing.T) {
 		StateTimestamp: 0,
 	}
 
-	err := df.transitionToPreparing()
+	err := df.TransitionToPreparing()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

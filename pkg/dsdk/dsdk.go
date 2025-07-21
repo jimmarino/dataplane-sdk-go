@@ -4,47 +4,129 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 )
 
 // DataFlowProcessor is an extension point for handling SDK data flow events. Implementations may modify the data flow instance
-// which will be persisted by the SDK.
-type DataFlowProcessor func(context.Context, *DataFlow) (*DataFlowResponseMessage, error)
+// which will be persisted by the SDK. If the message is a duplicate, implementations must support idempotent behavior.
+type DataFlowProcessor func(context context.Context, flow *DataFlow, duplicate bool, sdk *DataPlaneSDK) (*DataFlowResponseMessage, error)
 
 type DataFlowHandler func(context.Context, *DataFlow) error
+
+type LogMonitor interface {
+	Println(v ...any)
+	Printf(format string, v ...any)
+}
 
 type DataPlaneSDK struct {
 	Store      DataplaneStore
 	TrxContext TransactionContext
+	Monitor    LogMonitor
 
-	OnPrepare   DataFlowProcessor
-	OnStart     DataFlowProcessor
-	OnTerminate DataFlowHandler
-	OnSuspend   DataFlowHandler
-	OnRecover   DataFlowHandler
+	onPrepare   DataFlowProcessor
+	onStart     DataFlowProcessor
+	onTerminate DataFlowHandler
+	onSuspend   DataFlowHandler
+	onRecover   DataFlowHandler
 }
 
 // Prepare is called on the consumer to prepare for receiving data.
-// It invokes the OnPrepare callback and persists the created flow. Returns a response or an error if the process fails.
+// It invokes the onPrepare callback and persists the created flow. Returns a response or an error if the process fails.
 func (dsdk *DataPlaneSDK) Prepare(ctx context.Context, message DataFlowPrepareMessage) (*DataFlowResponseMessage, error) {
-	return dsdk.processFlow(ctx, message.ProcessId, Completed, func(ctx context.Context, flow *DataFlow) (*DataFlowResponseMessage, error) {
-		response, err := dsdk.OnPrepare(ctx, flow)
-		if err != nil {
-			return nil, fmt.Errorf("provision data flow: %w", err)
+	processId := message.ProcessId
+	if processId == "" {
+		return nil, errors.New("processId cannot be empty")
+	}
+	var response *DataFlowResponseMessage
+	err := dsdk.execute(ctx, func(context.Context) error {
+		flow, err := dsdk.Store.FindById(ctx, processId)
+		if err != nil && !errors.Is(err, ErrNotFound) {
+			return fmt.Errorf("performing de-duplication for %s: %w", processId, err)
 		}
-		return response, nil
+
+		switch {
+		case flow != nil && (flow.State == Preparing || flow.State == Prepared):
+			// duplicate message, pass to handler to generate a data address if needed (on consumer)
+			response, err = dsdk.onPrepare(ctx, flow, true, dsdk)
+			if err != nil {
+				return fmt.Errorf("processing data flow: %w", err)
+			}
+			return nil
+		case flow != nil:
+			return fmt.Errorf("data flow %s is not in PREPARING or PREPARED state", flow.ID)
+		}
+		flow = &DataFlow{ID: processId, Consumer: true, State: Preparing} // TODO fill out
+		response, err = dsdk.onPrepare(ctx, flow, false, dsdk)
+		if err != nil {
+			return fmt.Errorf("processing data flow %s: %w", flow.ID, err)
+		}
+
+		if err := dsdk.Store.Create(ctx, flow); err != nil {
+			return fmt.Errorf("creating data flow %s: %w", flow.ID, err)
+		}
+		return nil
 	})
+
+	return response, err
 }
 
 // Start is called on the provider and starts a data flow based on the given start message and execution context.
-// It invokes the OnStart callback and persists the created flow. Returns a response or an error if the process fails.
+// It invokes the onStart callback and persists the created flow. Returns a response or an error if the process fails.
 func (dsdk *DataPlaneSDK) Start(ctx context.Context, message DataFlowStartMessage) (*DataFlowResponseMessage, error) {
-	return dsdk.processFlow(ctx, message.ProcessId, Started, func(ctx context.Context, flow *DataFlow) (*DataFlowResponseMessage, error) {
-		response, err := dsdk.OnStart(ctx, flow)
-		if err != nil {
-			return nil, fmt.Errorf("start data flow: %w", err)
+	processId := message.ProcessId
+	if processId == "" {
+		return nil, errors.New("processId cannot be empty")
+	}
+	var response *DataFlowResponseMessage
+	err := dsdk.execute(ctx, func(context.Context) error {
+		flow, err := dsdk.Store.FindById(ctx, processId)
+		if err != nil && !errors.Is(err, ErrNotFound) {
+			return fmt.Errorf("performing de-duplication for %s: %w", processId, err)
 		}
-		return response, nil
+
+		switch {
+		case flow != nil && (flow.State == Starting || flow.State == Started):
+			// duplicate message, pass to handler to generate a data address if needed
+			response, err = dsdk.onStart(ctx, flow, true, dsdk)
+			if err != nil {
+				return fmt.Errorf("processing data flow: %w", err)
+			}
+
+			if err := dsdk.Store.Create(ctx, flow); err != nil {
+				return fmt.Errorf("creating data flow: %w", err)
+			}
+			return nil
+		case flow != nil && flow.Consumer && flow.State == Prepared:
+			// consumer side, process
+			response, err = dsdk.onStart(ctx, flow, false, dsdk)
+			if err != nil {
+				return fmt.Errorf("processing data flow: %w", err)
+			}
+
+			if err := dsdk.Store.Save(ctx, flow); err != nil {
+				return fmt.Errorf("updating data flow: %w", err)
+			}
+
+			return nil
+		case flow == nil:
+			// provider side, process
+			flow = &DataFlow{ID: processId, Consumer: false, State: Starting} // TODO fill out
+			response, err = dsdk.onStart(ctx, flow, false, dsdk)
+			if err != nil {
+				return fmt.Errorf("processing data flow: %w", err)
+			}
+
+			if err := dsdk.Store.Create(ctx, flow); err != nil {
+				return fmt.Errorf("creating data flow: %w", err)
+			}
+			return nil
+		default:
+			return fmt.Errorf("data flow %s is not in STARTED state: %s", flow.ID, flow.State)
+		}
 	})
+
+	return response, err
+
 }
 
 func (dsdk *DataPlaneSDK) Terminate(ctx context.Context, processId string) error {
@@ -55,19 +137,26 @@ func (dsdk *DataPlaneSDK) Terminate(ctx context.Context, processId string) error
 	return dsdk.execute(ctx, func(ctx context.Context) error {
 		flow, err := dsdk.Store.FindById(ctx, processId)
 		if err != nil {
-			return fmt.Errorf("performing terminate de-duplication: %w", err)
+			return fmt.Errorf("terminating data flow %s: %w", processId, err)
 		}
 
 		if Terminated == flow.State {
 			return nil // duplicate message, skip processing
 		}
 
-		return dsdk.updateFlowState(ctx, processId, Terminated, func(flow *DataFlow) error {
-			if err := dsdk.OnTerminate(ctx, flow); err != nil {
-				return fmt.Errorf("terminate data flow: %w", err)
-			}
-			return nil
-		})
+		err = flow.TransitionToTerminated()
+		if err != nil {
+			return err
+		}
+
+		if err := dsdk.onTerminate(ctx, flow); err != nil {
+			return fmt.Errorf("terminating data flow %s: %w", flow.ID, err)
+		}
+		err = dsdk.Store.Save(ctx, flow)
+		if err != nil {
+			return fmt.Errorf("terminating data flow %s: %w", flow.ID, err)
+		}
+		return nil
 	})
 }
 
@@ -76,23 +165,30 @@ func (dsdk *DataPlaneSDK) Suspend(ctx context.Context, processId string) error {
 		return errors.New("processId cannot be empty")
 	}
 
-	return dsdk.execute(ctx, func(ctx2 context.Context) error {
+	return dsdk.execute(ctx, func(ctx context.Context) error {
 		flow, err := dsdk.Store.FindById(ctx, processId)
 		if err != nil {
-			return fmt.Errorf("performing suspend de-duplication: %w", err)
+			return fmt.Errorf("suspending data flow %s: %w", processId, err)
 		}
 
 		if Suspended == flow.State {
 			return nil // duplicate message, skip processing
 		}
 
-		return dsdk.updateFlowState(ctx, processId, Suspended, func(flow *DataFlow) error {
-			if err := dsdk.OnSuspend(ctx, flow); err != nil {
-				return fmt.Errorf("suspend data flow: %w", err)
-			}
-			return nil
-		})
+		err = flow.TransitionToSuspended()
+		if err != nil {
+			return err
+		}
+		if err := dsdk.onSuspend(ctx, flow); err != nil {
+			return fmt.Errorf("suspending data flow %s: %w", flow.ID, err)
+		}
+		err = dsdk.Store.Save(ctx, flow)
+		if err != nil {
+			return fmt.Errorf("suspending data flow %s: %w", flow.ID, err)
+		}
+		return nil
 	})
+
 }
 
 func (dsdk *DataPlaneSDK) Recover(ctx context.Context) error {
@@ -110,8 +206,8 @@ func (dsdk *DataPlaneSDK) Recover(ctx context.Context) error {
 			if flow == nil {
 				continue // skip nil flows
 			}
-			if err := dsdk.OnRecover(ctx, flow); err != nil {
-				errs = append(errs, fmt.Errorf("data flow %v: %w", flow.ID, err))
+			if err := dsdk.onRecover(ctx, flow); err != nil {
+				errs = append(errs, fmt.Errorf("data flow %s: %w", flow.ID, err))
 			}
 		}
 
@@ -123,50 +219,6 @@ func (dsdk *DataPlaneSDK) Recover(ctx context.Context) error {
 	})
 }
 
-// processFlow handles common flow operations with deduplication
-func (dsdk *DataPlaneSDK) processFlow(
-	ctx context.Context,
-	processId string,
-	expectedState DataFlowState,
-	processor DataFlowProcessor,
-) (*DataFlowResponseMessage, error) {
-	if processId == "" {
-		return nil, errors.New("processId cannot be empty")
-	}
-
-	var response *DataFlowResponseMessage
-	err := dsdk.execute(ctx, func(ctx2 context.Context) error {
-		flow, err := dsdk.Store.FindById(ctx, processId)
-		if err != nil && !errors.Is(err, ErrNotFound) {
-			return fmt.Errorf("performing de-duplication: %w", err)
-		}
-
-		switch {
-		case flow != nil && flow.State == expectedState:
-			// duplicate message, skip processing
-			response = &DataFlowResponseMessage{}
-			return nil
-		case flow != nil && flow.State != expectedState:
-			return fmt.Errorf("data flow exists and %v is not in %v state", flow.ID, expectedState)
-		}
-
-		response, err = processor(ctx, flow)
-		if err != nil {
-			return err
-		}
-
-		if err := dsdk.Store.Create(ctx, flow); err != nil {
-			return fmt.Errorf("creating data flow: %w", err)
-		}
-
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	return response, nil
-}
-
 func (dsdk *DataPlaneSDK) execute(ctx context.Context, callback func(ctx2 context.Context) error) error {
 	select {
 	case <-ctx.Done():
@@ -174,23 +226,6 @@ func (dsdk *DataPlaneSDK) execute(ctx context.Context, callback func(ctx2 contex
 	default:
 		return dsdk.TrxContext.Execute(ctx, callback)
 	}
-}
-
-func (dsdk *DataPlaneSDK) updateFlowState(ctx context.Context, id string, newState DataFlowState, callback func(*DataFlow) error) error {
-	flow, err := dsdk.Store.FindById(ctx, id)
-	if err != nil {
-		return fmt.Errorf("finding data flow for id %v: %w", id, err)
-	}
-
-	if err := callback(flow); err != nil {
-		return err
-	}
-
-	flow.State = newState
-	if err := dsdk.Store.Save(ctx, flow); err != nil {
-		return fmt.Errorf("saving data flow: %w", err)
-	}
-	return nil
 }
 
 type DataPlaneSDKBuilder struct {
@@ -213,28 +248,28 @@ func (b *DataPlaneSDKBuilder) TransactionContext(trxContext TransactionContext) 
 	return b
 }
 
-func (b *DataPlaneSDKBuilder) OnPrepare(handler DataFlowProcessor) *DataPlaneSDKBuilder {
-	b.sdk.OnPrepare = handler
+func (b *DataPlaneSDKBuilder) OnPrepare(processor DataFlowProcessor) *DataPlaneSDKBuilder {
+	b.sdk.onPrepare = processor
 	return b
 }
 
-func (b *DataPlaneSDKBuilder) OnStart(handler DataFlowProcessor) *DataPlaneSDKBuilder {
-	b.sdk.OnStart = handler
+func (b *DataPlaneSDKBuilder) OnStart(processor DataFlowProcessor) *DataPlaneSDKBuilder {
+	b.sdk.onStart = processor
 	return b
 }
 
 func (b *DataPlaneSDKBuilder) OnTerminate(handler DataFlowHandler) *DataPlaneSDKBuilder {
-	b.sdk.OnTerminate = handler
+	b.sdk.onTerminate = handler
 	return b
 }
 
 func (b *DataPlaneSDKBuilder) OnSuspend(handler DataFlowHandler) *DataPlaneSDKBuilder {
-	b.sdk.OnSuspend = handler
+	b.sdk.onSuspend = handler
 	return b
 }
 
 func (b *DataPlaneSDKBuilder) OnRecover(handler DataFlowHandler) *DataPlaneSDKBuilder {
-	b.sdk.OnRecover = handler
+	b.sdk.onRecover = handler
 	return b
 }
 
@@ -245,21 +280,34 @@ func (b *DataPlaneSDKBuilder) Build() (*DataPlaneSDK, error) {
 	if b.sdk.TrxContext == nil {
 		return nil, errors.New("transaction context is required")
 	}
-	if b.sdk.OnPrepare == nil {
-		return nil, errors.New("OnPrepare handler is required")
+	if b.sdk.onPrepare == nil {
+		return nil, errors.New("onPrepare handler is required")
 	}
-	if b.sdk.OnStart == nil {
-		return nil, errors.New("OnStart handler is required")
+	if b.sdk.onStart == nil {
+		return nil, errors.New("onStart handler is required")
 	}
-	if b.sdk.OnTerminate == nil {
-		return nil, errors.New("OnTerminate handler is required")
+	if b.sdk.onTerminate == nil {
+		return nil, errors.New("onTerminate handler is required")
 	}
-	if b.sdk.OnSuspend == nil {
-		return nil, errors.New("OnSuspend handler is required")
+	if b.sdk.onSuspend == nil {
+		return nil, errors.New("onSuspend handler is required")
 	}
-	if b.sdk.OnRecover == nil {
-		return nil, errors.New("OnRecover handler is required")
+	if b.sdk.onRecover == nil {
+		return nil, errors.New("onRecover handler is required")
 	}
-
+	if b.sdk.Monitor == nil {
+		b.sdk.Monitor = defaultLogMonitor{}
+	}
 	return b.sdk, nil
+}
+
+type defaultLogMonitor struct {
+}
+
+func (d defaultLogMonitor) Println(v ...any) {
+	log.Println(v...)
+}
+
+func (d defaultLogMonitor) Printf(format string, v ...any) {
+	log.Printf(format, v...)
 }

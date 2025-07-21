@@ -11,7 +11,7 @@ func Test_DataPlaneSDK_Start(t *testing.T) {
 	dsdk := DataPlaneSDK{
 		Store:      store,
 		TrxContext: &mockTrxContext{},
-		OnStart: func(context.Context, *DataFlow) (*DataFlowResponseMessage, error) {
+		onStart: func(context.Context, *DataFlow, bool, *DataPlaneSDK) (*DataFlowResponseMessage, error) {
 			return &DataFlowResponseMessage{}, nil
 		},
 	}
