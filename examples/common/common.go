@@ -12,5 +12,27 @@
 
 package common
 
-const SignallingPort = 8080
+import (
+	"fmt"
+	"github.com/metaform/dataplane-sdk-go/pkg/dsdk"
+	"net/http"
+)
+
+const ProviderSignallingPort = 8080
 const DataPort = 8181
+
+const AppPort = 9090
+const ConsumerSignallingPort = 9191
+
+func NewSignallingServer(sdkApi *dsdk.DataPlaneApi, port int) *http.Server {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/start", sdkApi.Start)
+	mux.HandleFunc("/prepare", sdkApi.Prepare)
+
+	return &http.Server{Addr: fmt.Sprintf(":%d", port), Handler: mux}
+}
+
+func NewDataServer(port int) *http.Server {
+	mux := http.NewServeMux()
+	return &http.Server{Addr: fmt.Sprintf(":%d", port), Handler: mux}
+}

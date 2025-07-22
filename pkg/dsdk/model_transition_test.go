@@ -334,15 +334,14 @@ func TestDataFlow_transitionToStarted(t *testing.T) {
 			initialState: Uninitialized,
 			expectErr:    false,
 		},
+		"invalid transition from Prepared": {
+			initialState: Prepared,
+			expectErr:    false,
+		},
 		"invalid transition from Preparing": {
 			initialState: Preparing,
 			expectErr:    true,
 			expectedErr:  "invalid transition: cannot transition from PREPARING to STARTED",
-		},
-		"invalid transition from Prepared": {
-			initialState: Prepared,
-			expectErr:    true,
-			expectedErr:  "invalid transition: cannot transition from PREPARED to STARTED",
 		},
 		"valid transition from Starting": {
 			initialState: Starting,

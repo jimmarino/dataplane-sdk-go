@@ -9,7 +9,12 @@ import (
 
 // DataFlowProcessor is an extension point for handling SDK data flow events. Implementations may modify the data flow instance
 // which will be persisted by the SDK. If the message is a duplicate, implementations must support idempotent behavior.
-type DataFlowProcessor func(context context.Context, flow *DataFlow, duplicate bool, sdk *DataPlaneSDK) (*DataFlowResponseMessage, error)
+type DataFlowProcessor func(context context.Context, flow *DataFlow, sdk *DataPlaneSDK, options *ProcessorOptions) (*DataFlowResponseMessage, error)
+
+type ProcessorOptions struct {
+	Duplicate         bool
+	SourceDataAddress DataAddress
+}
 
 type DataFlowHandler func(context.Context, *DataFlow) error
 
@@ -47,7 +52,7 @@ func (dsdk *DataPlaneSDK) Prepare(ctx context.Context, message DataFlowPrepareMe
 		switch {
 		case flow != nil && (flow.State == Preparing || flow.State == Prepared):
 			// duplicate message, pass to handler to generate a data address if needed (on consumer)
-			response, err = dsdk.onPrepare(ctx, flow, true, dsdk)
+			response, err = dsdk.onPrepare(ctx, flow, dsdk, &ProcessorOptions{Duplicate: true})
 			if err != nil {
 				return fmt.Errorf("processing data flow: %w", err)
 			}
@@ -56,11 +61,23 @@ func (dsdk *DataPlaneSDK) Prepare(ctx context.Context, message DataFlowPrepareMe
 			return fmt.Errorf("data flow %s is not in PREPARING or PREPARED state", flow.ID)
 		}
 		flow = &DataFlow{ID: processId, Consumer: true, State: Preparing} // TODO fill out
-		response, err = dsdk.onPrepare(ctx, flow, false, dsdk)
+		response, err = dsdk.onPrepare(ctx, flow, dsdk, &ProcessorOptions{})
 		if err != nil {
 			return fmt.Errorf("processing data flow %s: %w", flow.ID, err)
 		}
-
+		if response.State == Prepared {
+			err := flow.TransitionToPrepared()
+			if err != nil {
+				return err
+			}
+		} else if response.State == Preparing {
+			err := flow.TransitionToPreparing()
+			if err != nil {
+				return err
+			}
+		} else {
+			return fmt.Errorf("onPrepare returned an invalid state %s", response.State)
+		}
 		if err := dsdk.Store.Create(ctx, flow); err != nil {
 			return fmt.Errorf("creating data flow %s: %w", flow.ID, err)
 		}
@@ -87,9 +104,14 @@ func (dsdk *DataPlaneSDK) Start(ctx context.Context, message DataFlowStartMessag
 		switch {
 		case flow != nil && (flow.State == Starting || flow.State == Started):
 			// duplicate message, pass to handler to generate a data address if needed
-			response, err = dsdk.onStart(ctx, flow, true, dsdk)
+			response, err = dsdk.onStart(ctx, flow, dsdk, &ProcessorOptions{Duplicate: true, SourceDataAddress: message.SourceDataAddress})
 			if err != nil {
 				return fmt.Errorf("processing data flow: %w", err)
+			}
+
+			err = dsdk.startState(response, flow)
+			if err != nil {
+				return fmt.Errorf("onStart returned an invalid state: %w", err)
 			}
 
 			if err := dsdk.Store.Create(ctx, flow); err != nil {
@@ -98,9 +120,14 @@ func (dsdk *DataPlaneSDK) Start(ctx context.Context, message DataFlowStartMessag
 			return nil
 		case flow != nil && flow.Consumer && flow.State == Prepared:
 			// consumer side, process
-			response, err = dsdk.onStart(ctx, flow, false, dsdk)
+			response, err = dsdk.onStart(ctx, flow, dsdk, &ProcessorOptions{SourceDataAddress: message.SourceDataAddress})
 			if err != nil {
 				return fmt.Errorf("processing data flow: %w", err)
+			}
+
+			err = dsdk.startState(response, flow)
+			if err != nil {
+				return fmt.Errorf("onStart returned an invalid state: %w", err)
 			}
 
 			if err := dsdk.Store.Save(ctx, flow); err != nil {
@@ -110,10 +137,15 @@ func (dsdk *DataPlaneSDK) Start(ctx context.Context, message DataFlowStartMessag
 			return nil
 		case flow == nil:
 			// provider side, process
-			flow = &DataFlow{ID: processId, Consumer: false, State: Starting} // TODO fill out
-			response, err = dsdk.onStart(ctx, flow, false, dsdk)
+			flow = &DataFlow{ID: processId, Consumer: false, State: Starting}
+			response, err = dsdk.onStart(ctx, flow, dsdk, &ProcessorOptions{})
 			if err != nil {
 				return fmt.Errorf("processing data flow: %w", err)
+			}
+
+			err = dsdk.startState(response, flow)
+			if err != nil {
+				return fmt.Errorf("onStart returned an invalid state: %w", err)
 			}
 
 			if err := dsdk.Store.Create(ctx, flow); err != nil {
@@ -217,6 +249,23 @@ func (dsdk *DataPlaneSDK) Recover(ctx context.Context) error {
 
 		return errors.Join(errs...)
 	})
+}
+
+func (dsdk *DataPlaneSDK) startState(response *DataFlowResponseMessage, flow *DataFlow) error {
+	if response.State == Started {
+		err := flow.TransitionToStarted()
+		if err != nil {
+			return err
+		}
+	} else if response.State == Starting {
+		err := flow.TransitionToStarting()
+		if err != nil {
+			return err
+		}
+	} else {
+		return fmt.Errorf("onStart returned an invalid state %s", response.State)
+	}
+	return nil
 }
 
 func (dsdk *DataPlaneSDK) execute(ctx context.Context, callback func(ctx2 context.Context) error) error {

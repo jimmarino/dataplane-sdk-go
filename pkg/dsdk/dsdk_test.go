@@ -11,14 +11,15 @@ func Test_DataPlaneSDK_Start(t *testing.T) {
 	dsdk := DataPlaneSDK{
 		Store:      store,
 		TrxContext: &mockTrxContext{},
-		onStart: func(context.Context, *DataFlow, bool, *DataPlaneSDK) (*DataFlowResponseMessage, error) {
-			return &DataFlowResponseMessage{}, nil
+		onStart: func(context.Context, *DataFlow, *DataPlaneSDK, *ProcessorOptions) (*DataFlowResponseMessage, error) {
+			return &DataFlowResponseMessage{State: Started}, nil
 		},
 	}
 
 	ctx := context.TODO()
 	store.EXPECT().FindById(ctx, "process123").Return(nil, ErrNotFound)
 	store.EXPECT().Create(ctx, mock.Anything).Return(nil)
+
 	_, _ = dsdk.Start(ctx, DataFlowStartMessage{DataFlowBaseMessage: DataFlowBaseMessage{
 		ProcessId: "process123",
 	}})

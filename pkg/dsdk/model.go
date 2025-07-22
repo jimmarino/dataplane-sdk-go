@@ -79,6 +79,7 @@ type DataFlowResponseMessage struct {
 	DataplaneId string        `json:"dataplaneId"`
 	DataAddress DataAddress   `json:"dataAddress"`
 	State       DataFlowState `json:"state"`
+	Error       string        `json:"error"`
 }
 
 type DataFlowState int
@@ -181,7 +182,7 @@ func (df *DataFlow) TransitionToStarted() error {
 	if df.State == Started {
 		return nil
 	}
-	if df.State != Uninitialized && df.State != Starting && df.State != Suspended {
+	if df.State != Uninitialized && df.State != Prepared && df.State != Starting && df.State != Suspended {
 		return fmt.Errorf("invalid transition: cannot transition from %v to STARTED", df.State)
 	}
 	df.State = Started

@@ -14,52 +14,43 @@ package main
 
 import (
 	"context"
-	"github.com/metaform/dataplane-sdk-go/examples/common"
-	"github.com/metaform/dataplane-sdk-go/examples/sync-pull-dataplane/dataplane"
-	"log"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
+	"fmt"
+	"github.com/google/uuid"
+	"github.com/metaform/dataplane-sdk-go/examples/controlplane"
+	"github.com/metaform/dataplane-sdk-go/examples/sync-pull-dataplane/launcher"
+	"sync"
 )
 
-// Creates an HTTP data plane that implements synchronous prepare and start messages.
+// Demonstrates initiating a data transfer using a provider data plane that implements synchronous signalling start operations.
 func main() {
-	sdkApi := dataplane.NewSdkApi()
 
-	signallingServer := dataplane.NewSignallingServer(sdkApi)
-	dataServer := dataplane.NewDataServer()
+	var wg sync.WaitGroup
+	defer wg.Done()
+	wg.Add(1)
 
-	// Start signaling server
-	go func() {
-		log.Printf("Signalling server listening on port %d\n", common.SignallingPort)
-		if err := signallingServer.ListenAndServe(); err != nil {
-			log.Fatalf("Signaling server failed to start: %v", err)
-		}
-	}()
+	launcher.LaunchServicesAndWait(&wg)
 
-	// Start data server
-	go func() {
-		log.Printf("Data server listening on port %d\n", common.DataPort)
-		if err := dataServer.ListenAndServe(); err != nil {
-			log.Fatalf("Signaling server failed to start: %v", err)
-		}
-	}()
+	cp, err := controlplane.NewSimulator()
 
-	// Wait for SIGINT
-	channel := make(chan os.Signal, 1)
-	signal.Notify(channel, syscall.SIGINT)
-	<-channel
-
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	if err := signallingServer.Shutdown(ctx); err != nil {
-		log.Printf("Signalling server shutdown error: %v", err)
+	if err != nil {
+		fmt.Printf("Unable to launch control plane simulator: %v\n", err)
 	}
-	if err := dataServer.Shutdown(ctx); err != nil {
-		log.Printf("Data server shutdown error: %v", err)
+	ctx := context.Background()
+	defer ctx.Done()
+
+	consumerProcessId := uuid.NewString()
+
+	// Signal to the provider data plane
+	providerProcessId := uuid.NewString()
+	da, err := cp.ProviderStart(ctx, providerProcessId)
+	if err != nil {
+		panic(err)
 	}
-	log.Println("Data plane stopped")
+
+	// Signal to the consumer data plane in response
+	err = cp.ConsumerStart(ctx, consumerProcessId, *da)
+	if err != nil {
+		panic(err)
+	}
 
 }

@@ -15,6 +15,7 @@ package dsdk
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/google/uuid"
 	"net/http"
 )
 
@@ -36,13 +37,13 @@ func (d *DataPlaneApi) Prepare(w http.ResponseWriter, r *http.Request) {
 	var prepareMessage DataFlowPrepareMessage
 
 	if err := json.NewDecoder(r.Body).Decode(&prepareMessage); err != nil {
-		http.Error(w, fmt.Sprintf("Failed to decode request body: %v", err), http.StatusBadRequest)
+		d.decodeError(w, err)
 		return
 	}
 
 	response, err := d.sdk.Prepare(r.Context(), prepareMessage)
 	if err != nil {
-		d.sdk.Monitor.Printf("Error preparing flow: %v\n", err)
+		d.processError(w)
 		return
 	}
 
@@ -63,13 +64,13 @@ func (d *DataPlaneApi) Start(w http.ResponseWriter, r *http.Request) {
 	var startMessage DataFlowStartMessage
 
 	if err := json.NewDecoder(r.Body).Decode(&startMessage); err != nil {
-		http.Error(w, fmt.Sprintf("Failed to decode request body: %v", err), http.StatusBadRequest)
+		d.decodeError(w, err)
 		return
 	}
 
 	response, err := d.sdk.Start(r.Context(), startMessage)
 	if err != nil {
-		d.sdk.Monitor.Printf("Error starting flow: %v\n", err)
+		d.processError(w)
 		return
 	}
 
@@ -83,12 +84,27 @@ func (d *DataPlaneApi) Start(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func (d *DataPlaneApi) decodeError(w http.ResponseWriter, err error) {
+	id := uuid.NewString()
+	d.sdk.Monitor.Printf("Error decoding flow [%s]: %v\n", id, err)
+	d.writeResponse(w, http.StatusBadRequest, &DataFlowResponseMessage{Error: fmt.Sprintf("Failed to decode request body [%s]", id)})
+}
+
+func (d *DataPlaneApi) processError(w http.ResponseWriter) {
+	id := uuid.NewString()
+	message := fmt.Sprintf("Error processing flow [%s]", id)
+	d.sdk.Monitor.Println(message)
+	d.writeResponse(w, http.StatusInternalServerError, &DataFlowResponseMessage{Error: message})
+}
+
 func (d *DataPlaneApi) writeResponse(w http.ResponseWriter, code int, response *DataFlowResponseMessage) {
 	w.Header().Set("Content-Type", jsonContentType)
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		d.sdk.Monitor.Printf("Error encoding response: %v\n", err)
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		id := uuid.NewString()
+		message := fmt.Sprintf("Error encoding response [%s]", id)
+		d.sdk.Monitor.Println(message)
+		d.writeResponse(w, http.StatusInternalServerError, &DataFlowResponseMessage{Error: message})
 		return
 	}
 }
