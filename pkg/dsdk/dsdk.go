@@ -60,7 +60,22 @@ func (dsdk *DataPlaneSDK) Prepare(ctx context.Context, message DataFlowPrepareMe
 		case flow != nil:
 			return fmt.Errorf("data flow %s is not in PREPARING or PREPARED state", flow.ID)
 		}
-		flow = &DataFlow{ID: processId, Consumer: true, State: Preparing} // TODO fill out
+		flow, err = NewDataFlowBuilder().ID(processId).
+			Consumer(true).
+			State(Preparing).
+			AgreementId(message.AgreementId).
+			DatasetId(message.DatasetId).
+			ParticipantId(message.ParticipantId).
+			CounterpartyId(message.CounterPartyId).
+			DataspaceContext(message.DataspaceContext).
+			TransferType(message.TransferType).
+			CallbackAddress(message.CallbackAddress).
+			Build()
+
+		if err != nil {
+			return fmt.Errorf("creating data flow: %w", err)
+		}
+
 		response, err = dsdk.onPrepare(ctx, flow, dsdk, &ProcessorOptions{})
 		if err != nil {
 			return fmt.Errorf("processing data flow %s: %w", flow.ID, err)
@@ -137,7 +152,19 @@ func (dsdk *DataPlaneSDK) Start(ctx context.Context, message DataFlowStartMessag
 			return nil
 		case flow == nil:
 			// provider side, process
-			flow = &DataFlow{ID: processId, Consumer: false, State: Starting}
+			flow, err = NewDataFlowBuilder().ID(processId).
+				State(Starting).
+				AgreementId(message.AgreementId).
+				DatasetId(message.DatasetId).
+				ParticipantId(message.ParticipantId).
+				CounterpartyId(message.CounterPartyId).
+				DataspaceContext(message.DataspaceContext).
+				TransferType(message.TransferType).
+				CallbackAddress(message.CallbackAddress).
+				Build()
+			if err != nil {
+				return fmt.Errorf("creating data flow: %w", err)
+			}
 			response, err = dsdk.onStart(ctx, flow, dsdk, &ProcessorOptions{})
 			if err != nil {
 				return fmt.Errorf("processing data flow: %w", err)

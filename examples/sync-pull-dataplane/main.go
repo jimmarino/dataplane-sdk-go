@@ -38,11 +38,18 @@ func main() {
 	ctx := context.Background()
 	defer ctx.Done()
 
-	consumerProcessId := uuid.NewString()
+	agreementId := uuid.NewString()
+	datasetId := uuid.NewString()
 
 	// Signal to the provider data plane
 	providerProcessId := uuid.NewString()
-	da, err := cp.ProviderStart(ctx, providerProcessId)
+	da, err := cp.ProviderStart(ctx, providerProcessId, agreementId, datasetId)
+	if err != nil {
+		panic(err)
+	}
+
+	consumerProcessId := uuid.NewString()
+	err = cp.ConsumerPrepare(ctx, consumerProcessId, agreementId, datasetId)
 	if err != nil {
 		panic(err)
 	}

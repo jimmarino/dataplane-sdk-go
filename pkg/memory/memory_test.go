@@ -40,13 +40,13 @@ func TestInMemoryStore_FindById(t *testing.T) {
 	t.Run("find existing flow", func(t *testing.T) {
 		// Create a test flow
 		flow := &dsdk.DataFlow{
-			ID:                   "test-flow-1",
-			RuntimeId:            "runtime-1",
-			ParticipantContextId: "participant-1",
-			DataspaceContext:     "dataspace-1",
-			CounterPartyId:       "counterparty-1",
-			State:                dsdk.Started,
-			CreatedAt:            time.Now().UnixMilli(),
+			ID:               "test-flow-1",
+			RuntimeId:        "runtime-1",
+			ParticipantId:    "participant-1",
+			DataspaceContext: "dataspace-1",
+			CounterPartyId:   "counterparty-1",
+			State:            dsdk.Started,
+			CreatedAt:        time.Now().UnixMilli(),
 		}
 
 		// Add flow to store
@@ -80,13 +80,13 @@ func TestInMemoryStore_Create(t *testing.T) {
 
 	t.Run("create valid flow", func(t *testing.T) {
 		flow := &dsdk.DataFlow{
-			ID:                   "test-flow-1",
-			RuntimeId:            "runtime-1",
-			ParticipantContextId: "participant-1",
-			DataspaceContext:     "dataspace-1",
-			CounterPartyId:       "counterparty-1",
-			State:                dsdk.Started,
-			CreatedAt:            time.Now().UnixMilli(),
+			ID:               "test-flow-1",
+			RuntimeId:        "runtime-1",
+			ParticipantId:    "participant-1",
+			DataspaceContext: "dataspace-1",
+			CounterPartyId:   "counterparty-1",
+			State:            dsdk.Started,
+			CreatedAt:        time.Now().UnixMilli(),
 		}
 
 		err := store.Create(ctx, flow)

@@ -76,7 +76,7 @@ func TestDataFlowBuilder_Build(t *testing.T) {
 					ID("test-id").
 					UpdatedAt(int64(time.Now().Unix())).
 					CreatedAt(int64(time.Now().Unix())).
-					ParticipantContextId("part-123").
+					ParticipantId("part-123").
 					DataspaceContext("ctx-123").
 					CounterpartyId("counter-123").
 					State(Started).
@@ -102,20 +102,6 @@ func TestDataFlowBuilder_Build(t *testing.T) {
 			builder: func() *DataFlowBuilder {
 				b := createValidBuilder(validURL)
 				return b.ID("")
-			},
-			wantErr: true,
-		},
-		"fails without source address properties": {
-			builder: func() *DataFlowBuilder {
-				b := createValidBuilder(validURL)
-				return b.SourceDataAddress(DataAddress{})
-			},
-			wantErr: true,
-		},
-		"fails without destination address properties": {
-			builder: func() *DataFlowBuilder {
-				b := createValidBuilder(validURL)
-				return b.DestinationDataAddress(DataAddress{})
 			},
 			wantErr: true,
 		},
@@ -146,8 +132,8 @@ func TestDataFlowBuilder_Build(t *testing.T) {
 			if flow.CreatedAt == 0 {
 				t.Error("CreatedAt is zero")
 			}
-			if flow.ParticipantContextId == "" {
-				t.Error("ParticipantContextId is empty")
+			if flow.ParticipantId == "" {
+				t.Error("ParticipantId is empty")
 			}
 			if flow.DataspaceContext == "" {
 				t.Error("DataspaceContext is empty")
@@ -158,12 +144,6 @@ func TestDataFlowBuilder_Build(t *testing.T) {
 			if flow.StateTimestamp == 0 {
 				t.Error("StateTimestamp is zero")
 			}
-			if flow.SourceDataAddress.Properties == nil {
-				t.Error("SourceDataAddress properties is nil")
-			}
-			if flow.DestinationDataAddress.Properties == nil {
-				t.Error("DestinationDataAddress properties is nil")
-			}
 			if flow.CallbackAddress.URL() == nil {
 				t.Error("CallbackAddress is nil")
 			}
@@ -172,9 +152,6 @@ func TestDataFlowBuilder_Build(t *testing.T) {
 			}
 			if flow.TransferType.FlowType == "" {
 				t.Error("TransferType flow type is empty")
-			}
-			if flow.RuntimeId == "" {
-				t.Error("RuntimeId is empty")
 			}
 		})
 	}
@@ -186,7 +163,7 @@ func createValidBuilder(validURL *url.URL) *DataFlowBuilder {
 		ID("test-id").
 		UpdatedAt(int64(time.Now().Unix())).
 		CreatedAt(int64(time.Now().Unix())).
-		ParticipantContextId("part-123").
+		ParticipantId("part-123").
 		DataspaceContext("ctx-123").
 		CounterpartyId("counter-123").
 		State(Started).

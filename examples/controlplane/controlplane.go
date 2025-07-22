@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/google/uuid"
@@ -38,13 +39,21 @@ func NewSimulator() (*ControlPlaneSimulator, error) {
 	return &ControlPlaneSimulator{}, nil
 }
 
-func (c *ControlPlaneSimulator) ProviderStart(ctx context.Context, processId string) (*dsdk.DataAddress, error) {
+func (c *ControlPlaneSimulator) ProviderStart(ctx context.Context, processId string, agreementId string, datasetId string) (*dsdk.DataAddress, error) {
+
+	callbackURL, _ := url.Parse("http://provider.com/dp/callback")
+
 	startMessage := dsdk.DataFlowStartMessage{
 		DataFlowBaseMessage: dsdk.DataFlowBaseMessage{
-			MessageId:     uuid.NewString(),
-			ProcessId:     processId,
-			ParticipantId: "did:web:provider.com",
-			AgreementId:   uuid.NewString(),
+			MessageId:        uuid.NewString(),
+			AgreementId:      agreementId,
+			DatasetId:        datasetId,
+			ProcessId:        processId,
+			DataspaceContext: "dscontext",
+			CounterPartyId:   "did:web:consumer.com",
+			ParticipantId:    "did:web:provider.com",
+			CallbackAddress:  dsdk.CallbackURL(*callbackURL),
+			TransferType:     dsdk.TransferType{DestinationType: "custom", FlowType: dsdk.Pull},
 		},
 	}
 
@@ -81,17 +90,21 @@ func (c *ControlPlaneSimulator) ProviderStart(ctx context.Context, processId str
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	fmt.Printf("DataFlowStartMessage successful: %v\n", message)
 	return &message.DataAddress, nil
 }
 
 func (c *ControlPlaneSimulator) ConsumerStart(ctx context.Context, processId string, source dsdk.DataAddress) error {
+	callbackURL, _ := url.Parse("http://provider.com/dp/callback")
 	startMessage := dsdk.DataFlowStartMessage{
 		DataFlowBaseMessage: dsdk.DataFlowBaseMessage{
-			MessageId:     uuid.NewString(),
-			ProcessId:     processId,
-			ParticipantId: "did:web:provider.com",
-			AgreementId:   uuid.NewString(),
+			MessageId:        uuid.NewString(),
+			ProcessId:        processId,
+			AgreementId:      uuid.NewString(),
+			DataspaceContext: "dscontext",
+			ParticipantId:    "did:web:consumer.com",
+			CounterPartyId:   "did:web:provider.com",
+			CallbackAddress:  dsdk.CallbackURL(*callbackURL),
+			TransferType:     dsdk.TransferType{DestinationType: "custom", FlowType: dsdk.Pull},
 		},
 		SourceDataAddress: source,
 	}
@@ -129,17 +142,22 @@ func (c *ControlPlaneSimulator) ConsumerStart(ctx context.Context, processId str
 		return fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	fmt.Printf("DataFlowStartMessage successful: %v\n", message)
 	return nil
 }
 
-func (c *ControlPlaneSimulator) ConsumerPrepare(ctx context.Context, processId string) error {
+func (c *ControlPlaneSimulator) ConsumerPrepare(ctx context.Context, processId string, agreementId string, datasetId string) error {
+	callbackURL, _ := url.Parse("http://provider.com/dp/callback")
 	prepareMessage := dsdk.DataFlowPrepareMessage{
 		DataFlowBaseMessage: dsdk.DataFlowBaseMessage{
-			MessageId:     uuid.NewString(),
-			ProcessId:     processId,
-			ParticipantId: "did:web:provider.com",
-			AgreementId:   uuid.NewString(),
+			MessageId:        uuid.NewString(),
+			AgreementId:      agreementId,
+			DatasetId:        datasetId,
+			ProcessId:        processId,
+			DataspaceContext: "dscontext",
+			ParticipantId:    "did:web:consumer.com",
+			CounterPartyId:   "did:web:provider.com",
+			CallbackAddress:  dsdk.CallbackURL(*callbackURL),
+			TransferType:     dsdk.TransferType{DestinationType: "custom", FlowType: dsdk.Pull},
 		},
 	}
 
@@ -176,6 +194,5 @@ func (c *ControlPlaneSimulator) ConsumerPrepare(ctx context.Context, processId s
 		return fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	fmt.Printf("DataFlowPrepareMessage successful: %v\n", message)
 	return nil
 }

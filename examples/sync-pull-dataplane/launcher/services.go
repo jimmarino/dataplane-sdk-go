@@ -14,8 +14,8 @@ package launcher
 
 import (
 	"context"
-	"github.com/metaform/dataplane-sdk-go/examples/sync-pull-dataplane/app"
-	"github.com/metaform/dataplane-sdk-go/examples/sync-pull-dataplane/dataplane"
+	"github.com/metaform/dataplane-sdk-go/examples/sync-pull-dataplane/consumer"
+	"github.com/metaform/dataplane-sdk-go/examples/sync-pull-dataplane/provider"
 	"sync"
 	"time"
 )
@@ -23,31 +23,30 @@ import (
 func LaunchServicesAndWait(wg *sync.WaitGroup) {
 	go func() {
 		// Launch services
-		providerDataPlane, clientApp := LaunchService()
+		providerDataPlane, consumerDataPlane := LaunchService()
 
 		wg.Wait()
 
 		// Shutdown services
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
-		clientApp.Shutdown(ctx)
+		consumerDataPlane.Shutdown(ctx)
 		providerDataPlane.Shutdown(ctx)
 	}()
 }
 
-func LaunchService() (*dataplane.ProviderDataPlane, *app.ClientApp) {
-	providerDataPlane, err := dataplane.NewDataPlane()
+func LaunchService() (*provider.ProviderDataPlane, *consumer.ConsumerDataPlane) {
+	providerDataPlane, err := provider.NewDataPlane()
 	if err != nil {
 		panic(err)
 	}
 	providerDataPlane.Init()
 
-	// launch provider app
-	clientApp, err := app.NewClientApp()
+	consumerDataPlane, err := consumer.NewDataPlane()
 	if err != nil {
 		panic(err)
 	}
-	// launch app
-	clientApp.Init()
-	return providerDataPlane, clientApp
+	consumerDataPlane.Init()
+
+	return providerDataPlane, consumerDataPlane
 }

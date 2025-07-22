@@ -10,7 +10,7 @@
 //       Metaform Systems, Inc. - initial API and implementation
 //
 
-package app
+package consumer
 
 import (
 	"context"
@@ -22,13 +22,13 @@ import (
 	"net/http"
 )
 
-type ClientApp struct {
+type ConsumerDataPlane struct {
 	api              *dsdk.DataPlaneApi
 	signallingServer *http.Server
 }
 
-func NewClientApp() (*ClientApp, error) {
-	app := &ClientApp{}
+func NewDataPlane() (*ConsumerDataPlane, error) {
+	app := &ConsumerDataPlane{}
 	sdk, err := dsdk.NewDataPlaneSDKBuilder().
 		Store(memory.NewInMemoryStore()).
 		TransactionContext(memory.InMemoryTrxContext{}).
@@ -43,37 +43,39 @@ func NewClientApp() (*ClientApp, error) {
 	}
 	api := dsdk.NewDataPlaneApi(sdk)
 
-	return &ClientApp{api: api}, nil
+	return &ConsumerDataPlane{api: api}, nil
 }
 
-func (a *ClientApp) Init() {
+func (a *ConsumerDataPlane) Init() {
 	a.signallingServer = common.NewSignallingServer(a.api, common.ConsumerSignallingPort)
 	// Start signaling server
 	go func() {
-		log.Printf("Consumer signalling server listening on port %d\n", common.ConsumerSignallingPort)
+		log.Printf("[Consumer Data Plane] Signalling server listening on port %d\n", common.ConsumerSignallingPort)
 		if err := a.signallingServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("Signaling server failed to start: %v", err)
+			log.Fatalf("Consumer signaling server failed to start: %v", err)
 		}
 	}()
 }
 
-func (a *ClientApp) Shutdown(ctx context.Context) {
+func (a *ConsumerDataPlane) Shutdown(ctx context.Context) {
 	if a.signallingServer != nil {
 		if err := a.signallingServer.Shutdown(ctx); err != nil {
-			log.Printf("App signalling server shutdown error: %v", err)
+			log.Printf("Consumer signalling server shutdown error: %v", err)
 		}
 	}
-	log.Println("Consumer app shutdown")
+	log.Println("Consumer data plane shutdown")
 }
 
-func (a *ClientApp) prepareProcessor(ctx context.Context, flow *dsdk.DataFlow, sdk *dsdk.DataPlaneSDK, options *dsdk.ProcessorOptions) (*dsdk.DataFlowResponseMessage, error) {
+func (a *ConsumerDataPlane) prepareProcessor(ctx context.Context, flow *dsdk.DataFlow, sdk *dsdk.DataPlaneSDK, options *dsdk.ProcessorOptions) (*dsdk.DataFlowResponseMessage, error) {
+	log.Printf("[Consumer Data Plane] Prepared transfer for participant %s dataset %s\n", flow.ParticipantId, flow.DatasetId)
 	return &dsdk.DataFlowResponseMessage{State: dsdk.Prepared}, nil
 }
 
-func (a *ClientApp) startProcessor(ctx context.Context, flow *dsdk.DataFlow, sdk *dsdk.DataPlaneSDK, options *dsdk.ProcessorOptions) (*dsdk.DataFlowResponseMessage, error) {
+func (a *ConsumerDataPlane) startProcessor(ctx context.Context, flow *dsdk.DataFlow, sdk *dsdk.DataPlaneSDK, options *dsdk.ProcessorOptions) (*dsdk.DataFlowResponseMessage, error) {
+	log.Printf("[Consumer Data Plane] Transfer access token available for participant %s dataset %s\n", flow.ParticipantId, flow.DatasetId)
 	return &dsdk.DataFlowResponseMessage{State: dsdk.Started}, nil
 }
 
-func (a *ClientApp) noopHandler(context.Context, *dsdk.DataFlow) error {
+func (a *ConsumerDataPlane) noopHandler(context.Context, *dsdk.DataFlow) error {
 	return nil
 }

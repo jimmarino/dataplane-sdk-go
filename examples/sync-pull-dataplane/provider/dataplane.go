@@ -10,7 +10,7 @@
 //       Metaform Systems, Inc. - initial API and implementation
 //
 
-package dataplane
+package provider
 
 import (
 	"context"
@@ -63,7 +63,7 @@ func (d *ProviderDataPlane) Init() {
 
 	// Start signaling server
 	go func() {
-		log.Printf("Provider signalling server listening on port %d\n", common.ProviderSignallingPort)
+		log.Printf("[Provider Data Plane] Signalling server listening on port %d\n", common.ProviderSignallingPort)
 		if err := d.signallingServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("Provider signaling server failed to start: %v", err)
 		}
@@ -71,7 +71,7 @@ func (d *ProviderDataPlane) Init() {
 
 	// Start data server
 	go func() {
-		log.Printf("Provider data server listening on port %d\n", common.DataPort)
+		log.Printf("[Provider Data Plane] Data server listening on port %d\n", common.DataPort)
 		if err := d.dataServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("Provider data server failed to start: %v", err)
 		}
@@ -90,7 +90,7 @@ func (d *ProviderDataPlane) Shutdown(ctx context.Context) {
 			log.Printf("Provider data server shutdown error: %v", err)
 		}
 	}
-	log.Println("Data plane shutdown")
+	log.Println("Provider data plane shutdown")
 }
 
 func (d *ProviderDataPlane) prepareProcessor(ctx context.Context, flow *dsdk.DataFlow, sdk *dsdk.DataPlaneSDK, options *dsdk.ProcessorOptions) (*dsdk.DataFlowResponseMessage, error) {
@@ -120,7 +120,7 @@ func (d *ProviderDataPlane) startProcessor(ctx context.Context, flow *dsdk.DataF
 		return nil, fmt.Errorf("failed to build data address: %w", err)
 	}
 
-	log.Println("Started transfer")
+	log.Printf("[Provider Data Plane] Started transfer for %s and returning access token\n", flow.CounterPartyId)
 	return &dsdk.DataFlowResponseMessage{State: flow.State, DataAddress: *da}, nil
 }
 

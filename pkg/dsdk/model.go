@@ -59,8 +59,11 @@ type TransferType struct {
 type DataFlowBaseMessage struct {
 	MessageId              string       `json:"messageId"` // NEW
 	ParticipantId          string       `json:"participantId"`
+	CounterPartyId         string       `json:"counterPartyId"`
+	DataspaceContext       string       `json:"dataspceContext"`
 	ProcessId              string       `json:"processId"`
 	AgreementId            string       `json:"agreementId"`
+	DatasetId              string       `json:"datasetId"`
 	CallbackAddress        CallbackURL  `json:"callbackAddress"`
 	TransferType           TransferType `json:"transferType"`
 	DestinationDataAddress DataAddress  `json:"destinationDataAddress"`
@@ -122,10 +125,12 @@ type DataFlow struct {
 	ID                     string
 	Version                int64
 	Consumer               bool
+	AgreementId            string
+	DatasetId              string
 	RuntimeId              string
 	UpdatedAt              int64
 	CreatedAt              int64
-	ParticipantContextId   string
+	ParticipantId          string
 	DataspaceContext       string
 	CounterPartyId         string
 	CallbackAddress        CallbackURL
@@ -241,6 +246,11 @@ func (b *DataFlowBuilder) ID(id string) *DataFlowBuilder {
 	return b
 }
 
+func (b *DataFlowBuilder) Consumer(val bool) *DataFlowBuilder {
+	b.dataFlow.Consumer = val
+	return b
+}
+
 func (b *DataFlowBuilder) UpdatedAt(updatedAt int64) *DataFlowBuilder {
 	b.dataFlow.UpdatedAt = updatedAt
 	return b
@@ -251,8 +261,8 @@ func (b *DataFlowBuilder) CreatedAt(createdAt int64) *DataFlowBuilder {
 	return b
 }
 
-func (b *DataFlowBuilder) ParticipantContextId(id string) *DataFlowBuilder {
-	b.dataFlow.ParticipantContextId = id
+func (b *DataFlowBuilder) ParticipantId(id string) *DataFlowBuilder {
+	b.dataFlow.ParticipantId = id
 	return b
 }
 
@@ -311,6 +321,16 @@ func (b *DataFlowBuilder) RuntimeId(id string) *DataFlowBuilder {
 	return b
 }
 
+func (b *DataFlowBuilder) DatasetId(id string) *DataFlowBuilder {
+	b.dataFlow.DatasetId = id
+	return b
+}
+
+func (b *DataFlowBuilder) AgreementId(id string) *DataFlowBuilder {
+	b.dataFlow.AgreementId = id
+	return b
+}
+
 func (b *DataFlowBuilder) Build() (*DataFlow, error) {
 	var validationErrs []string
 
@@ -330,8 +350,8 @@ func (b *DataFlowBuilder) Build() (*DataFlow, error) {
 		validationErrs = append(validationErrs, "ID is required")
 	}
 
-	if b.dataFlow.ParticipantContextId == "" {
-		validationErrs = append(validationErrs, "ParticipantContextId is required")
+	if b.dataFlow.ParticipantId == "" {
+		validationErrs = append(validationErrs, "ParticipantId is required")
 	}
 
 	if b.dataFlow.DataspaceContext == "" {
@@ -340,14 +360,6 @@ func (b *DataFlowBuilder) Build() (*DataFlow, error) {
 
 	if b.dataFlow.CounterPartyId == "" {
 		validationErrs = append(validationErrs, "CounterPartyId is required")
-	}
-
-	if b.dataFlow.SourceDataAddress.Properties == nil {
-		validationErrs = append(validationErrs, "SourceDataAddress properties are required")
-	}
-
-	if b.dataFlow.DestinationDataAddress.Properties == nil {
-		validationErrs = append(validationErrs, "DestinationDataAddress properties are required")
 	}
 
 	if b.dataFlow.CallbackAddress.URL().String() == "" {
@@ -360,10 +372,6 @@ func (b *DataFlowBuilder) Build() (*DataFlow, error) {
 
 	if b.dataFlow.TransferType.FlowType == "" {
 		validationErrs = append(validationErrs, "TransferType flow type is required")
-	}
-
-	if b.dataFlow.RuntimeId == "" {
-		validationErrs = append(validationErrs, "RuntimeId is required")
 	}
 
 	if len(validationErrs) > 0 {

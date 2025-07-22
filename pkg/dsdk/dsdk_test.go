@@ -3,6 +3,7 @@ package dsdk
 import (
 	"context"
 	"github.com/stretchr/testify/mock"
+	"net/url"
 	"testing"
 )
 
@@ -16,12 +17,21 @@ func Test_DataPlaneSDK_Start(t *testing.T) {
 		},
 	}
 
-	ctx := context.TODO()
+	ctx := context.Background()
 	store.EXPECT().FindById(ctx, "process123").Return(nil, ErrNotFound)
 	store.EXPECT().Create(ctx, mock.Anything).Return(nil)
 
+	callbackURL, _ := url.Parse("http://test.com/callback")
+
 	_, _ = dsdk.Start(ctx, DataFlowStartMessage{DataFlowBaseMessage: DataFlowBaseMessage{
-		ProcessId: "process123",
+		ProcessId:        "process123",
+		AgreementId:      "agreement123",
+		DatasetId:        "dataset123",
+		ParticipantId:    "participant123",
+		DataspaceContext: "dscontext",
+		CounterPartyId:   "counterparty123",
+		CallbackAddress:  CallbackURL(*callbackURL),
+		TransferType:     TransferType{DestinationType: "test", FlowType: Pull},
 	}})
 }
 
