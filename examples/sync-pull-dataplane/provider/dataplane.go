@@ -14,6 +14,7 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
@@ -24,16 +25,20 @@ import (
 	"net/http"
 )
 
+const endpointUrl = "http://localhost:%d/datasets"
+
+// ProviderDataPlane is a provider data plane that demonstrates how to use the Data Plane SDK. This implementation supports
+// the transfer of simple JSON datasets over HTTP and Data Plane Signalling start and prepare handling using synchronous responses.
 type ProviderDataPlane struct {
 	api              *dsdk.DataPlaneApi
-	tokenStore       *common.Store[string]
+	tokenStore       *common.Store[tokenEntry]
 	signallingServer *http.Server
 	dataServer       *http.Server
 }
 
 func NewDataPlane() (*ProviderDataPlane, error) {
 	providerDataPlane := &ProviderDataPlane{
-		tokenStore: common.NewStore[string](),
+		tokenStore: common.NewStore[tokenEntry](),
 	}
 
 	builder := dsdk.NewDataPlaneSDKBuilder()
@@ -57,9 +62,8 @@ func NewDataPlane() (*ProviderDataPlane, error) {
 }
 
 func (d *ProviderDataPlane) Init() {
-
 	d.signallingServer = common.NewSignallingServer(d.api, common.ProviderSignallingPort)
-	d.dataServer = common.NewDataServer(common.DataPort)
+	d.dataServer = common.NewDataServer(common.ProviderDataPort, "/datasets/", d.transferDataset)
 
 	// Start signaling server
 	go func() {
@@ -71,12 +75,11 @@ func (d *ProviderDataPlane) Init() {
 
 	// Start data server
 	go func() {
-		log.Printf("[Provider Data Plane] Data server listening on port %d\n", common.DataPort)
+		log.Printf("[Provider Data Plane] Data server listening on port %d\n", common.ProviderDataPort)
 		if err := d.dataServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("Provider data server failed to start: %v", err)
 		}
 	}()
-
 }
 
 func (d *ProviderDataPlane) Shutdown(ctx context.Context) {
@@ -98,7 +101,6 @@ func (d *ProviderDataPlane) prepareProcessor(ctx context.Context, flow *dsdk.Dat
 }
 
 func (d *ProviderDataPlane) startProcessor(ctx context.Context, flow *dsdk.DataFlow, sdk *dsdk.DataPlaneSDK, options *dsdk.ProcessorOptions) (*dsdk.DataFlowResponseMessage, error) {
-	// Generate token once for both paths
 	token := uuid.NewString()
 
 	if options.Duplicate {
@@ -107,13 +109,22 @@ func (d *ProviderDataPlane) startProcessor(ctx context.Context, flow *dsdk.DataF
 	}
 
 	// Store token first, then build data address
-	d.tokenStore.Create(flow.ID, token) // token is pinned to the flow ID which is the transfer process id on the control plane
+	tokenEntry := tokenEntry{
+		token:    token,
+		datsetId: flow.DatasetId,
+		binding:  flow.CounterPartyId,
+	}
+	d.tokenStore.Create(flow.DatasetId, tokenEntry) // token is pinned to the flow ID which is the transfer process id on the control plane
+
 	err := flow.TransitionToStarted()
 	if err != nil {
 		return nil, err
 	}
 
-	da, err := dsdk.NewDataAddressBuilder().Property("token", token).Build()
+	da, err := dsdk.NewDataAddressBuilder().
+		Property("token", token).
+		Property("endpoint", fmt.Sprintf(endpointUrl, common.ProviderDataPort)).
+		Build()
 	if err != nil {
 		// remove up token on error
 		d.tokenStore.Delete(flow.ID)
@@ -134,7 +145,6 @@ func (d *ProviderDataPlane) suspendProcessor(ctx context.Context, flow *dsdk.Dat
 }
 
 func (d *ProviderDataPlane) terminateProcessor(ctx context.Context, flow *dsdk.DataFlow) error {
-	// TODO add reason code
 	d.tokenStore.Delete(flow.ID) // invalidate token
 	err := flow.TransitionToTerminated()
 	if err != nil {
@@ -145,4 +155,50 @@ func (d *ProviderDataPlane) terminateProcessor(ctx context.Context, flow *dsdk.D
 
 func (d *ProviderDataPlane) noopHandler(context.Context, *dsdk.DataFlow) error {
 	return nil
+}
+
+func (d *ProviderDataPlane) transferDataset(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+
+	token, err := common.ParseToken(w, r)
+	if err != nil {
+		http.Error(w, "Invalid token: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	datasetId, err := common.ParseDataset(w, r)
+	if err != nil {
+		http.Error(w, "Invalid URL path: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Validate token
+	tokenEntry, found := d.tokenStore.Find(datasetId)
+	if !found || tokenEntry.datsetId != datasetId || tokenEntry.token != token {
+		http.Error(w, "Invalid token", http.StatusForbidden)
+	}
+
+	datasetContent := &DatasetContent{
+		DatasetId: datasetId,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	if err := json.NewEncoder(w).Encode(datasetContent); err != nil {
+		log.Printf("[Provider Data Plane] Failed to serialize dataset: %v", err)
+		http.Error(w, "unable to serialize dataset", http.StatusInternalServerError)
+	}
+}
+
+type tokenEntry struct {
+	token    string
+	datsetId string
+	binding  string
+}
+
+type DatasetContent struct {
+	DatasetId string `json:"datasetId"`
 }
