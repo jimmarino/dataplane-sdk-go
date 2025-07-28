@@ -90,12 +90,18 @@ func (d *ConsumerDataPlane) Shutdown(ctx context.Context) {
 	log.Println("Consumer data plane shutdown")
 }
 
-func (d *ConsumerDataPlane) prepareProcessor(ctx context.Context, flow *dsdk.DataFlow, sdk *dsdk.DataPlaneSDK, options *dsdk.ProcessorOptions) (*dsdk.DataFlowResponseMessage, error) {
+func (d *ConsumerDataPlane) prepareProcessor(_ context.Context,
+	flow *dsdk.DataFlow,
+	_ *dsdk.DataPlaneSDK,
+	_ *dsdk.ProcessorOptions) (*dsdk.DataFlowResponseMessage, error) {
 	log.Printf("[Consumer Data Plane] Prepared transfer for participant %s dataset %s\n", flow.ParticipantID, flow.DatasetID)
 	return &dsdk.DataFlowResponseMessage{State: dsdk.Prepared}, nil
 }
 
-func (d *ConsumerDataPlane) startProcessor(ctx context.Context, flow *dsdk.DataFlow, sdk *dsdk.DataPlaneSDK, options *dsdk.ProcessorOptions) (*dsdk.DataFlowResponseMessage, error) {
+func (d *ConsumerDataPlane) startProcessor(_ context.Context,
+	flow *dsdk.DataFlow,
+	_ *dsdk.DataPlaneSDK,
+	options *dsdk.ProcessorOptions) (*dsdk.DataFlowResponseMessage, error) {
 	log.Printf("[Consumer Data Plane] Transfer access token available for participant %s dataset %s\n", flow.ParticipantID, flow.DatasetID)
 	endpoint := options.SourceDataAddress.Properties[dsdk.EndpointKey].(string)
 	token := options.SourceDataAddress.Properties["token"].(string)
