@@ -14,23 +14,12 @@ package main
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"github.com/google/uuid"
-	"github.com/metaform/dataplane-sdk-go/examples/common"
 	"github.com/metaform/dataplane-sdk-go/examples/controlplane"
+	"github.com/metaform/dataplane-sdk-go/examples/sync-pull-dataplane/consumer"
 	"github.com/metaform/dataplane-sdk-go/examples/sync-pull-dataplane/launcher"
-	"io"
 	"log"
-	"net/http"
 	"sync"
-	"time"
-)
-
-const (
-	jsonContentType = "application/json"
-	accept          = "Accept"
-	authorization   = "Authorization"
 )
 
 // Demonstrates initiating a data transfer using a provider data plane that implements synchronous signalling start operations.
@@ -72,62 +61,7 @@ func main() {
 		log.Fatalf("Unable to send start to consumer control plane: %v\n", err)
 	}
 
-	if err = transferDataset(datasetID); err != nil {
+	if err = consumer.TransferDataset(datasetID); err != nil {
 		log.Fatalf("Unable to start data transfer: %v\n", err)
 	}
-}
-
-func transferDataset(datasetID string) error {
-	if datasetID == "" {
-		return fmt.Errorf("dataset ID cannot be empty")
-	}
-
-	ctx := context.Background()
-	defer ctx.Done()
-	consumerEndpoint := fmt.Sprintf("http://localhost:%d/tokens/%s", common.ConsumerDataPort, datasetID)
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, consumerEndpoint, nil)
-	if err != nil {
-		return fmt.Errorf("failed to create token request: %w", err)
-	}
-
-	httpClient := http.Client{
-		Timeout: 30 * time.Second,
-	}
-
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("failed to execute request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("request failed with status %d: %s", resp.StatusCode, string(body))
-	}
-
-	var tokenResponse common.TokenResponse
-	if err := json.NewDecoder(resp.Body).Decode(&tokenResponse); err != nil {
-		return fmt.Errorf("failed to decode token response: %w", err)
-	}
-
-	req, err = http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/%s", tokenResponse.Endpoint, datasetID), nil)
-	if err != nil {
-		return fmt.Errorf("failed to create dataset request: %w", err)
-	}
-	req.Header.Set(authorization, fmt.Sprintf("Bearer %s", tokenResponse.Token))
-	req.Header.Set(accept, jsonContentType)
-
-	resp, err = httpClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("failed to execute request: %w", err.Error())
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("unexpected response: %d", resp.StatusCode)
-
-	}
-	log.Printf("[Client] Successful dataset request")
-	return nil
 }
