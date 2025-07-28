@@ -10,7 +10,7 @@
 //       Metaform Systems, Inc. - initial API and implementation
 //
 
-package provider
+package nats
 
 import (
 	"fmt"
@@ -21,7 +21,7 @@ import (
 
 const (
 	authKP  = "SAAHZHKC43PG6B6EP3LZ7HB3HB3JD25GSJRV5LFZE2A6XFT57SDFRSEI4E"
-	natsUrl = "localhost:4222"
+	NatsUrl = "localhost:4222"
 )
 
 type NATSServer struct {

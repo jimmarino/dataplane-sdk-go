@@ -10,7 +10,7 @@
 //       Metaform Systems, Inc. - initial API and implementation
 //
 
-package provider
+package nats
 
 import (
 	"errors"
@@ -75,7 +75,7 @@ func (as *AuthService) Init() error {
 	}
 
 	// create a connection using the callout user
-	nc, err := nats.Connect(natsUrl, nats.UserInfo("auth", "pass"))
+	nc, err := nats.Connect(NatsUrl, nats.UserInfo("auth", "pass"))
 	if err != nil {
 		log.Fatal("Failed to connect:", err)
 	}

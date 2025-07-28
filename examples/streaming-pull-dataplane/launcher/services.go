@@ -13,19 +13,20 @@
 package launcher
 
 import (
+	"github.com/metaform/dataplane-sdk-go/examples/common/nats"
 	"github.com/metaform/dataplane-sdk-go/examples/streaming-pull-dataplane/consumer"
 	"github.com/metaform/dataplane-sdk-go/examples/streaming-pull-dataplane/provider"
 	"log"
 )
 
 func LaunchServices() (*provider.ProviderDataPlane, *consumer.ConsumerDataPlane) {
-	ns := provider.NewNatsServer()
+	ns := nats.NewNatsServer()
 	err := ns.Init()
 	if err != nil {
 		log.Fatalf("Failed to initialize NATS Server: %v\n", err)
 	}
 
-	as := provider.NewAuthService()
+	as := nats.NewAuthService()
 	err = as.Init()
 	if err != nil {
 		log.Fatalf("Failed to initialize Auth Service: %v\n", err)

@@ -17,6 +17,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/metaform/dataplane-sdk-go/examples/common"
+	"github.com/metaform/dataplane-sdk-go/examples/common/nats"
 	"github.com/metaform/dataplane-sdk-go/examples/streaming-pull-dataplane/config"
 	"github.com/metaform/dataplane-sdk-go/pkg/dsdk"
 	"github.com/metaform/dataplane-sdk-go/pkg/memory"
@@ -28,12 +29,12 @@ import (
 type ProviderDataPlane struct {
 	api              *dsdk.DataPlaneApi
 	signallingServer *http.Server
-	authService      *AuthService
-	natsServer       *NATSServer
+	authService      *nats.AuthService
+	natsServer       *nats.NATSServer
 	publisherService *EventPublisherService
 }
 
-func NewDataPlane(authService *AuthService, natServer *NATSServer, publisherApp *EventPublisherService) (*ProviderDataPlane, error) {
+func NewDataPlane(authService *nats.AuthService, natServer *nats.NATSServer, publisherApp *EventPublisherService) (*ProviderDataPlane, error) {
 	providerDataPlane := &ProviderDataPlane{authService: authService, natsServer: natServer, publisherService: publisherApp}
 
 	builder := dsdk.NewDataPlaneSDKBuilder()
@@ -105,7 +106,7 @@ func (d *ProviderDataPlane) startProcessor(_ context.Context,
 	replyChannel := flow.ID + "." + config.ReplySuffix
 	da, err := dsdk.NewDataAddressBuilder().
 		Property(dsdk.EndpointType, config.NATSEndpointType).
-		Property(dsdk.EndpointKey, natsUrl).
+		Property(dsdk.EndpointKey, nats.NatsUrl).
 		EndpointProperty(config.TokenKey, "string", token).
 		EndpointProperty(config.ChannelKey, "string", channel).
 		EndpointProperty(config.ReplyChannelKey, "string", replyChannel).

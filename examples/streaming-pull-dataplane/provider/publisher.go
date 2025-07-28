@@ -16,6 +16,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/metaform/dataplane-sdk-go/examples/common"
+	nats2 "github.com/metaform/dataplane-sdk-go/examples/common/nats"
 	"github.com/nats-io/nats.go"
 	"log"
 	"time"
@@ -77,7 +78,7 @@ func (m *EventPublisherService) startInternal(ctx context.Context, channel strin
 }
 
 func connect() (*nats.Conn, error) {
-	nc, err := nats.Connect(natsUrl,
+	nc, err := nats.Connect(nats2.NatsUrl,
 		nats.UserInfo("provider", "provider"),
 	)
 
