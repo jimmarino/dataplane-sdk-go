@@ -61,11 +61,11 @@ func ParseDataset(w http.ResponseWriter, r *http.Request) (string, error) {
 		return "", errors.New("invalid URL path")
 	}
 
-	datasetId := pathParts[len(pathParts)-1]
-	if datasetId == "" {
+	datasetID := pathParts[len(pathParts)-1]
+	if datasetID == "" {
 		http.Error(w, "Dataset ID not found in URL path", http.StatusBadRequest)
 	}
-	return datasetId, nil
+	return datasetID, nil
 }
 
 // ParseToken extracts and returns the Bearer token from the Authorization header in the HTTP request.

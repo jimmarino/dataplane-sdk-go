@@ -45,14 +45,14 @@ func NewSimulator() (*ControlPlaneSimulator, error) {
 	return &ControlPlaneSimulator{}, nil
 }
 
-func (c *ControlPlaneSimulator) ProviderStart(ctx context.Context, processID string, agreementId string, datasetId string) (*dsdk.DataAddress, error) {
+func (c *ControlPlaneSimulator) ProviderStart(ctx context.Context, processID string, agreementID string, datasetID string) (*dsdk.DataAddress, error) {
 	callbackURL, _ := url.Parse(providerCallbackURL)
 
 	startMessage := dsdk.DataFlowStartMessage{
 		DataFlowBaseMessage: dsdk.DataFlowBaseMessage{
 			MessageID:        uuid.NewString(),
-			AgreementID:      agreementId,
-			DatasetID:        datasetId,
+			AgreementID:      agreementID,
+			DatasetID:        datasetID,
 			ProcessID:        processID,
 			DataspaceContext: "dscontext",
 			CounterPartyID:   "did:web:consumer.com",
@@ -150,13 +150,13 @@ func (c *ControlPlaneSimulator) ConsumerStart(ctx context.Context, processID str
 	return nil
 }
 
-func (c *ControlPlaneSimulator) ConsumerPrepare(ctx context.Context, processID string, agreementId string, datasetId string) error {
+func (c *ControlPlaneSimulator) ConsumerPrepare(ctx context.Context, processID string, agreementID string, datasetID string) error {
 	callbackURL, _ := url.Parse(providerCallbackURL)
 	prepareMessage := dsdk.DataFlowPrepareMessage{
 		DataFlowBaseMessage: dsdk.DataFlowBaseMessage{
 			MessageID:        uuid.NewString(),
-			AgreementID:      agreementId,
-			DatasetID:        datasetId,
+			AgreementID:      agreementID,
+			DatasetID:        datasetID,
 			ProcessID:        processID,
 			DataspaceContext: "dscontext",
 			ParticipantID:    "did:web:consumer.com",
@@ -202,7 +202,7 @@ func (c *ControlPlaneSimulator) ConsumerPrepare(ctx context.Context, processID s
 	return nil
 }
 
-func (c *ControlPlaneSimulator) ProviderTerminate(ctx context.Context, processID string, agreementId string, datasetId string) error {
+func (c *ControlPlaneSimulator) ProviderTerminate(ctx context.Context, processID string, agreementID string, datasetID string) error {
 	terminateMessage := dsdk.DataFlowTransitionMessage{Reason: "violation"}
 
 	serialized, err := json.Marshal(terminateMessage)

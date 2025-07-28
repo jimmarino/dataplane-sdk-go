@@ -50,18 +50,18 @@ func main() {
 	ctx := context.Background()
 	defer ctx.Done()
 
-	agreementId := uuid.NewString()
-	datasetId := uuid.NewString()
+	agreementID := uuid.NewString()
+	datasetID := uuid.NewString()
 
 	consumerProcessID := uuid.NewString()
-	err = cp.ConsumerPrepare(ctx, consumerProcessID, agreementId, datasetId)
+	err = cp.ConsumerPrepare(ctx, consumerProcessID, agreementID, datasetID)
 	if err != nil {
 		log.Fatalf("Unable to send prepate to consumer control plane: %v\n", err)
 	}
 
 	// Signal to the provider data plane
 	providerProcessID := uuid.NewString()
-	da, err := cp.ProviderStart(ctx, providerProcessID, agreementId, datasetId)
+	da, err := cp.ProviderStart(ctx, providerProcessID, agreementID, datasetID)
 	if err != nil {
 		log.Fatalf("Unable to send start to provider control plane: %v\n", err)
 	}
@@ -72,19 +72,19 @@ func main() {
 		log.Fatalf("Unable to send start to consumer control plane: %v\n", err)
 	}
 
-	if err = transferDataset(datasetId); err != nil {
+	if err = transferDataset(datasetID); err != nil {
 		log.Fatalf("Unable to start data transfer: %v\n", err)
 	}
 }
 
-func transferDataset(datasetId string) error {
-	if datasetId == "" {
+func transferDataset(datasetID string) error {
+	if datasetID == "" {
 		return fmt.Errorf("dataset ID cannot be empty")
 	}
 
 	ctx := context.Background()
 	defer ctx.Done()
-	consumerEndpoint := fmt.Sprintf("http://localhost:%d/tokens/%s", common.ConsumerDataPort, datasetId)
+	consumerEndpoint := fmt.Sprintf("http://localhost:%d/tokens/%s", common.ConsumerDataPort, datasetID)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, consumerEndpoint, nil)
 	if err != nil {
@@ -111,7 +111,7 @@ func transferDataset(datasetId string) error {
 		return fmt.Errorf("failed to decode token response: %w", err)
 	}
 
-	req, err = http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/%s", tokenResponse.Endpoint, datasetId), nil)
+	req, err = http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/%s", tokenResponse.Endpoint, datasetID), nil)
 	if err != nil {
 		return fmt.Errorf("failed to create dataset request: %w", err)
 	}

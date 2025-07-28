@@ -172,20 +172,20 @@ func (d *ProviderDataPlane) transferDataset(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	datasetId, err := common.ParseDataset(w, r)
+	datasetID, err := common.ParseDataset(w, r)
 	if err != nil {
 		http.Error(w, "Invalid URL path: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	// Validate token
-	tokenEntry, found := d.tokenStore.Find(datasetId)
-	if !found || tokenEntry.datsetId != datasetId || tokenEntry.token != token {
+	tokenEntry, found := d.tokenStore.Find(datasetID)
+	if !found || tokenEntry.datsetId != datasetID || tokenEntry.token != token {
 		http.Error(w, "Invalid token", http.StatusForbidden)
 	}
 
 	datasetContent := &DatasetContent{
-		DatasetID: datasetId,
+		DatasetID: datasetID,
 	}
 
 	w.Header().Set(contentType, jsonContentType)

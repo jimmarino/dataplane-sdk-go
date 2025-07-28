@@ -99,7 +99,7 @@ func (d *ConsumerDataPlane) startProcessor(ctx context.Context, flow *dsdk.DataF
 	log.Printf("[Consumer Data Plane] Transfer access token available for participant %s dataset %s\n", flow.ParticipantID, flow.DatasetID)
 	endpoint := options.SourceDataAddress.Properties[dsdk.EndpointKey].(string)
 	token := options.SourceDataAddress.Properties["token"].(string)
-	d.tokenStore.Create(flow.DatasetID, tokenEntry{datasetId: flow.DatasetID, token: token, endpoint: endpoint})
+	d.tokenStore.Create(flow.DatasetID, tokenEntry{datasetID: flow.DatasetID, token: token, endpoint: endpoint})
 	return &dsdk.DataFlowResponseMessage{State: dsdk.Started}, nil
 }
 
@@ -113,12 +113,12 @@ func (d *ConsumerDataPlane) getEndpointToken(w http.ResponseWriter, r *http.Requ
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 
-	datasetId, err := common.ParseDataset(w, r)
+	datasetID, err := common.ParseDataset(w, r)
 	if err != nil {
 		http.Error(w, "Invalid URL path: "+err.Error(), http.StatusBadRequest)
 		return
 	}
-	entry, exists := d.tokenStore.Find(datasetId)
+	entry, exists := d.tokenStore.Find(datasetID)
 	if !exists {
 		http.Error(w, "Token not found for dataset", http.StatusNotFound)
 		return
@@ -137,7 +137,7 @@ func (d *ConsumerDataPlane) getEndpointToken(w http.ResponseWriter, r *http.Requ
 }
 
 type tokenEntry struct {
-	datasetId string
+	datasetID string
 	token     string
 	endpoint  string
 }

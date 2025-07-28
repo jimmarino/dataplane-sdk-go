@@ -25,11 +25,11 @@ func main() {
 	ctx := context.Background()
 	defer ctx.Done()
 
-	agreementId := uuid.NewString()
-	datasetId := uuid.NewString()
+	agreementID := uuid.NewString()
+	datasetID := uuid.NewString()
 
 	consumerProcessID := uuid.NewString()
-	err = cp.ConsumerPrepare(ctx, consumerProcessID, agreementId, datasetId)
+	err = cp.ConsumerPrepare(ctx, consumerProcessID, agreementID, datasetID)
 	if err != nil {
 		log.Fatalf("Unable to send prepare to consumer control plane: %v\n", err)
 	}
@@ -37,7 +37,7 @@ func main() {
 	providerProcessID := uuid.NewString()
 
 	// Signal to the provider data plane
-	da, err := cp.ProviderStart(ctx, providerProcessID, agreementId, datasetId)
+	da, err := cp.ProviderStart(ctx, providerProcessID, agreementID, datasetID)
 	if err != nil {
 		log.Fatalf("Unable to send start to provider control plane: %v\n", err)
 	}
@@ -51,7 +51,7 @@ func main() {
 	time.Sleep(10 * time.Second)
 
 	// Terminate the transfer and forcibly disconnect the client
-	err = cp.ProviderTerminate(ctx, providerProcessID, agreementId, datasetId)
+	err = cp.ProviderTerminate(ctx, providerProcessID, agreementID, datasetID)
 	if err != nil {
 		log.Fatalf("Unable to send terminate to provider control plane: %v\n", err)
 	}
