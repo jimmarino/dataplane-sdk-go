@@ -121,7 +121,7 @@ func (d *ProviderDataPlane) startProcessor(_ context.Context,
 	// Start publishing events. In a real system, this could be done via a queue or notification mechanism
 	d.publisherService.Start(channel)
 
-	log.Printf("[Provider Data Plane] Starting transfer for %s\n", flow.CounterPartyId)
+	log.Printf("[Provider Data Plane] Starting transfer for %s\n", flow.CounterPartyID)
 	return &dsdk.DataFlowResponseMessage{State: flow.State, DataAddress: *da}, nil
 }
 
@@ -132,7 +132,7 @@ func (d *ProviderDataPlane) suspendProcessor(_ context.Context, flow *dsdk.DataF
 	if err != nil {
 		return err
 	}
-	log.Printf("[Provider Data Plane] Suspending transfer for %s\n", flow.CounterPartyId)
+	log.Printf("[Provider Data Plane] Suspending transfer for %s\n", flow.CounterPartyID)
 	return d.invalidate(flow)
 }
 
@@ -143,7 +143,7 @@ func (d *ProviderDataPlane) terminateProcessor(_ context.Context, flow *dsdk.Dat
 	if err != nil {
 		return err
 	}
-	log.Printf("[Provider Data Plane] Terminating transfer for %s\n", flow.CounterPartyId)
+	log.Printf("[Provider Data Plane] Terminating transfer for %s\n", flow.CounterPartyID)
 	return d.invalidate(flow)
 }
 

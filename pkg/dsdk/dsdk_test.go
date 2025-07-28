@@ -24,12 +24,12 @@ func Test_DataPlaneSDK_Start(t *testing.T) {
 	callbackURL, _ := url.Parse("http://test.com/callback")
 
 	_, _ = dsdk.Start(ctx, DataFlowStartMessage{DataFlowBaseMessage: DataFlowBaseMessage{
-		ProcessId:        "process123",
-		AgreementId:      "agreement123",
-		DatasetId:        "dataset123",
-		ParticipantId:    "participant123",
+		ProcessID:        "process123",
+		AgreementID:      "agreement123",
+		DatasetID:        "dataset123",
+		ParticipantID:    "participant123",
 		DataspaceContext: "dscontext",
-		CounterPartyId:   "counterparty123",
+		CounterPartyID:   "counterparty123",
 		CallbackAddress:  CallbackURL(*callbackURL),
 		TransferType:     TransferType{DestinationType: "test", FlowType: Pull},
 	}})

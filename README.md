@@ -21,13 +21,13 @@ qualities of service, recovery, and error handling.
 ### 3. Terminate
 
 - Purpose: Ends a data flow
-- Function: `Terminate(ctx context.Context, processId string) error`
+- Function: `Terminate(ctx context.Context, processID string) error`
 - Requires: Process ID
 
 ### 4. Suspend
 
 - Purpose: Temporarily halts a data flow
-- Function: `Suspend(ctx context.Context, processId string) error`
+- Function: `Suspend(ctx context.Context, processID string) error`
 - Requires: Process ID
 
 ### 5. Recover

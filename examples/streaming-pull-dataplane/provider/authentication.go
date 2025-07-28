@@ -40,9 +40,9 @@ func NewAuthService() *AuthService {
 	return &AuthService{tokenStore: common.NewStore[storeEntry](), accountKeys: accountKeys}
 }
 
-func (as *AuthService) InvalidateToken(processId string) error {
+func (as *AuthService) InvalidateToken(processID string) error {
 	// Remove from token store
-	found := as.tokenStore.Delete(processId)
+	found := as.tokenStore.Delete(processID)
 	if !found {
 		return fmt.Errorf("token not found")
 	}
@@ -64,7 +64,7 @@ func (as *AuthService) Init() error {
 
 		// put the user in the global account
 		uc.Audience = "$G"
-		uc.Name = userClaims.Name // sets to processid
+		uc.Name = userClaims.Name // sets to processID
 		uc.Pub.Allow.Add("_INBOX.>")
 		uc.Expires = time.Now().Unix() + 90
 
@@ -94,19 +94,19 @@ func (as *AuthService) Init() error {
 	return nil
 }
 
-func (ns *AuthService) CreateToken(processId string) (string, error) {
+func (ns *AuthService) CreateToken(processID string) (string, error) {
 	userKeys, _ := nkeys.CreateUser()
 	userPKey, _ := userKeys.PublicKey()
 
 	userClaims := jwt.NewUserClaims(userPKey)
-	userClaims.Name = processId
+	userClaims.Name = processID
 
 	// Restrict permissions to publish only to the forward and response subjects
-	userClaims.Permissions.Sub.Allow.Add(processId + config.ForwardSuffix)
-	userClaims.Permissions.Sub.Allow.Add(processId + config.ReplySuffix)
+	userClaims.Permissions.Sub.Allow.Add(processID + config.ForwardSuffix)
+	userClaims.Permissions.Sub.Allow.Add(processID + config.ReplySuffix)
 
 	userJWT, _ := userClaims.Encode(ns.accountKeys)
-	ns.tokenStore.Create(processId, storeEntry{processId, userJWT})
+	ns.tokenStore.Create(processID, storeEntry{processID, userJWT})
 	return userJWT, nil
 }
 
@@ -117,6 +117,6 @@ func (ac *AuthService) shutdown() {
 }
 
 type storeEntry struct {
-	processId string
+	processID string
 	token     string
 }

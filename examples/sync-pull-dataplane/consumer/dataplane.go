@@ -91,15 +91,15 @@ func (d *ConsumerDataPlane) Shutdown(ctx context.Context) {
 }
 
 func (d *ConsumerDataPlane) prepareProcessor(ctx context.Context, flow *dsdk.DataFlow, sdk *dsdk.DataPlaneSDK, options *dsdk.ProcessorOptions) (*dsdk.DataFlowResponseMessage, error) {
-	log.Printf("[Consumer Data Plane] Prepared transfer for participant %s dataset %s\n", flow.ParticipantId, flow.DatasetId)
+	log.Printf("[Consumer Data Plane] Prepared transfer for participant %s dataset %s\n", flow.ParticipantID, flow.DatasetID)
 	return &dsdk.DataFlowResponseMessage{State: dsdk.Prepared}, nil
 }
 
 func (d *ConsumerDataPlane) startProcessor(ctx context.Context, flow *dsdk.DataFlow, sdk *dsdk.DataPlaneSDK, options *dsdk.ProcessorOptions) (*dsdk.DataFlowResponseMessage, error) {
-	log.Printf("[Consumer Data Plane] Transfer access token available for participant %s dataset %s\n", flow.ParticipantId, flow.DatasetId)
+	log.Printf("[Consumer Data Plane] Transfer access token available for participant %s dataset %s\n", flow.ParticipantID, flow.DatasetID)
 	endpoint := options.SourceDataAddress.Properties[dsdk.EndpointKey].(string)
 	token := options.SourceDataAddress.Properties["token"].(string)
-	d.tokenStore.Create(flow.DatasetId, tokenEntry{datasetId: flow.DatasetId, token: token, endpoint: endpoint})
+	d.tokenStore.Create(flow.DatasetID, tokenEntry{datasetId: flow.DatasetID, token: token, endpoint: endpoint})
 	return &dsdk.DataFlowResponseMessage{State: dsdk.Started}, nil
 }
 

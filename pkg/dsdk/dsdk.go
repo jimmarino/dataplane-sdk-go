@@ -38,15 +38,15 @@ type DataPlaneSDK struct {
 // Prepare is called on the consumer to prepare for receiving data.
 // It invokes the onPrepare callback and persists the created flow. Returns a response or an error if the process fails.
 func (dsdk *DataPlaneSDK) Prepare(ctx context.Context, message DataFlowPrepareMessage) (*DataFlowResponseMessage, error) {
-	processId := message.ProcessId
-	if processId == "" {
-		return nil, errors.New("processId cannot be empty")
+	processID := message.ProcessID
+	if processID == "" {
+		return nil, errors.New("processID cannot be empty")
 	}
 	var response *DataFlowResponseMessage
 	err := dsdk.execute(ctx, func(context.Context) error {
-		flow, err := dsdk.Store.FindById(ctx, processId)
+		flow, err := dsdk.Store.FindById(ctx, processID)
 		if err != nil && !errors.Is(err, ErrNotFound) {
-			return fmt.Errorf("performing de-duplication for %s: %w", processId, err)
+			return fmt.Errorf("performing de-duplication for %s: %w", processID, err)
 		}
 
 		switch {
@@ -60,13 +60,13 @@ func (dsdk *DataPlaneSDK) Prepare(ctx context.Context, message DataFlowPrepareMe
 		case flow != nil:
 			return fmt.Errorf("data flow %s is not in PREPARING or PREPARED state", flow.ID)
 		}
-		flow, err = NewDataFlowBuilder().ID(processId).
+		flow, err = NewDataFlowBuilder().ID(processID).
 			Consumer(true).
 			State(Preparing).
-			AgreementId(message.AgreementId).
-			DatasetId(message.DatasetId).
-			ParticipantId(message.ParticipantId).
-			CounterpartyId(message.CounterPartyId).
+			AgreementID(message.AgreementID).
+			DatasetID(message.DatasetID).
+			ParticipantID(message.ParticipantID).
+			CounterpartyID(message.CounterPartyID).
 			DataspaceContext(message.DataspaceContext).
 			TransferType(message.TransferType).
 			CallbackAddress(message.CallbackAddress).
@@ -105,15 +105,15 @@ func (dsdk *DataPlaneSDK) Prepare(ctx context.Context, message DataFlowPrepareMe
 // Start is called on the provider and starts a data flow based on the given start message and execution context.
 // It invokes the onStart callback and persists the created flow. Returns a response or an error if the process fails.
 func (dsdk *DataPlaneSDK) Start(ctx context.Context, message DataFlowStartMessage) (*DataFlowResponseMessage, error) {
-	processId := message.ProcessId
-	if processId == "" {
-		return nil, errors.New("processId cannot be empty")
+	processID := message.ProcessID
+	if processID == "" {
+		return nil, errors.New("processID cannot be empty")
 	}
 	var response *DataFlowResponseMessage
 	err := dsdk.execute(ctx, func(context.Context) error {
-		flow, err := dsdk.Store.FindById(ctx, processId)
+		flow, err := dsdk.Store.FindById(ctx, processID)
 		if err != nil && !errors.Is(err, ErrNotFound) {
-			return fmt.Errorf("performing de-duplication for %s: %w", processId, err)
+			return fmt.Errorf("performing de-duplication for %s: %w", processID, err)
 		}
 
 		switch {
@@ -152,12 +152,12 @@ func (dsdk *DataPlaneSDK) Start(ctx context.Context, message DataFlowStartMessag
 			return nil
 		case flow == nil:
 			// provider side, process
-			flow, err = NewDataFlowBuilder().ID(processId).
+			flow, err = NewDataFlowBuilder().ID(processID).
 				State(Starting).
-				AgreementId(message.AgreementId).
-				DatasetId(message.DatasetId).
-				ParticipantId(message.ParticipantId).
-				CounterpartyId(message.CounterPartyId).
+				AgreementID(message.AgreementID).
+				DatasetID(message.DatasetID).
+				ParticipantID(message.ParticipantID).
+				CounterpartyID(message.CounterPartyID).
 				DataspaceContext(message.DataspaceContext).
 				TransferType(message.TransferType).
 				CallbackAddress(message.CallbackAddress).
@@ -188,15 +188,15 @@ func (dsdk *DataPlaneSDK) Start(ctx context.Context, message DataFlowStartMessag
 
 }
 
-func (dsdk *DataPlaneSDK) Terminate(ctx context.Context, processId string) error {
-	if processId == "" {
-		return errors.New("processId cannot be empty")
+func (dsdk *DataPlaneSDK) Terminate(ctx context.Context, processID string) error {
+	if processID == "" {
+		return errors.New("processID cannot be empty")
 	}
 
 	return dsdk.execute(ctx, func(ctx context.Context) error {
-		flow, err := dsdk.Store.FindById(ctx, processId)
+		flow, err := dsdk.Store.FindById(ctx, processID)
 		if err != nil {
-			return fmt.Errorf("terminating data flow %s: %w", processId, err)
+			return fmt.Errorf("terminating data flow %s: %w", processID, err)
 		}
 
 		if Terminated == flow.State {
@@ -219,15 +219,15 @@ func (dsdk *DataPlaneSDK) Terminate(ctx context.Context, processId string) error
 	})
 }
 
-func (dsdk *DataPlaneSDK) Suspend(ctx context.Context, processId string) error {
-	if processId == "" {
-		return errors.New("processId cannot be empty")
+func (dsdk *DataPlaneSDK) Suspend(ctx context.Context, processID string) error {
+	if processID == "" {
+		return errors.New("processID cannot be empty")
 	}
 
 	return dsdk.execute(ctx, func(ctx context.Context) error {
-		flow, err := dsdk.Store.FindById(ctx, processId)
+		flow, err := dsdk.Store.FindById(ctx, processID)
 		if err != nil {
-			return fmt.Errorf("suspending data flow %s: %w", processId, err)
+			return fmt.Errorf("suspending data flow %s: %w", processID, err)
 		}
 
 		if Suspended == flow.State {

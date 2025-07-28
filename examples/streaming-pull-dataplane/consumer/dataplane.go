@@ -73,7 +73,7 @@ func (d *ConsumerDataPlane) prepareProcessor(_ context.Context,
 	_ *dsdk.DataPlaneSDK,
 	_ *dsdk.ProcessorOptions) (*dsdk.DataFlowResponseMessage, error) {
 
-	log.Printf("[Consumer Data Plane] Prepared transfer for participant %s dataset %s\n", flow.ParticipantId, flow.DatasetId)
+	log.Printf("[Consumer Data Plane] Prepared transfer for participant %s dataset %s\n", flow.ParticipantID, flow.DatasetID)
 	return &dsdk.DataFlowResponseMessage{State: dsdk.Prepared}, nil
 }
 
@@ -103,7 +103,7 @@ func (d *ConsumerDataPlane) startProcessor(ctx context.Context,
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("[Consumer Data Plane] Started NATS subscriber for participant %s dataset %s\n", flow.ParticipantId, flow.DatasetId)
+	log.Printf("[Consumer Data Plane] Started NATS subscriber for participant %s dataset %s\n", flow.ParticipantID, flow.DatasetID)
 	return &dsdk.DataFlowResponseMessage{State: dsdk.Started}, nil
 }
 
@@ -113,7 +113,7 @@ func (d *ConsumerDataPlane) terminateProcessor(_ context.Context, flow *dsdk.Dat
 		return err
 	}
 	d.eventSubscriber.CloseConnection(flow.ID)
-	log.Printf("[Consumer Data Plane] Terminated transfer for %s\n", flow.CounterPartyId)
+	log.Printf("[Consumer Data Plane] Terminated transfer for %s\n", flow.CounterPartyID)
 	return nil
 }
 
@@ -123,7 +123,7 @@ func (d *ConsumerDataPlane) suspendProcessor(_ context.Context, flow *dsdk.DataF
 		return err
 	}
 	d.eventSubscriber.CloseConnection(flow.ID)
-	log.Printf("[Consumer Data Plane] Suspended transfer for %s\n", flow.CounterPartyId)
+	log.Printf("[Consumer Data Plane] Suspended transfer for %s\n", flow.CounterPartyID)
 	return nil
 }
 

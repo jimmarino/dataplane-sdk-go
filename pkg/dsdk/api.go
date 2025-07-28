@@ -22,6 +22,7 @@ import (
 	"strings"
 )
 
+const contentType = "Content-Type"
 const jsonContentType = "application/json"
 
 type DataPlaneApi struct {
@@ -88,6 +89,18 @@ func (d *DataPlaneApi) Start(w http.ResponseWriter, r *http.Request) {
 }
 
 func (d *DataPlaneApi) Terminate(w http.ResponseWriter, r *http.Request) {
+	d.transition(w, r, func(processID string) error {
+		return d.sdk.Terminate(r.Context(), processID)
+	})
+}
+
+func (d *DataPlaneApi) Suspend(w http.ResponseWriter, r *http.Request) {
+	d.transition(w, r, func(processID string) error {
+		return d.sdk.Suspend(r.Context(), processID)
+	})
+}
+
+func (d *DataPlaneApi) transition(w http.ResponseWriter, r *http.Request, transition func(processID string) error) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Invalid request method", http.StatusBadRequest)
 		return
@@ -98,20 +111,21 @@ func (d *DataPlaneApi) Terminate(w http.ResponseWriter, r *http.Request) {
 		d.processError(w)
 		return
 	}
-	var terminateMessage DataFlowTerminateMessage
+
+	var terminateMessage DataFlowTransitionMessage
 
 	if err := json.NewDecoder(r.Body).Decode(&terminateMessage); err != nil {
 		d.decodeError(w, err)
 		return
 	}
 
-	err = d.sdk.Terminate(r.Context(), processID)
+	err = transition(processID)
 	if err != nil {
 		d.processError(w)
 		return
 	}
 
-	w.Header().Set("Content-Type", jsonContentType)
+	w.Header().Set(contentType, jsonContentType)
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -129,7 +143,7 @@ func (d *DataPlaneApi) processError(w http.ResponseWriter) {
 }
 
 func (d *DataPlaneApi) writeResponse(w http.ResponseWriter, code int, response *DataFlowResponseMessage) {
-	w.Header().Set("Content-Type", jsonContentType)
+	w.Header().Set(contentType, jsonContentType)
 	w.WriteHeader(code)
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		id := uuid.NewString()

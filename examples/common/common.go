@@ -40,6 +40,7 @@ func NewSignallingServer(sdkApi *dsdk.DataPlaneApi, port int) *http.Server {
 	mux.HandleFunc("/start", sdkApi.Start)
 	mux.HandleFunc("/prepare", sdkApi.Prepare)
 	mux.HandleFunc("/terminate/", sdkApi.Terminate)
+	mux.HandleFunc("/suspend/", sdkApi.Suspend)
 
 	return &http.Server{Addr: fmt.Sprintf(":%d", port), Handler: mux}
 }

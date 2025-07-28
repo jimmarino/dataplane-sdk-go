@@ -45,18 +45,18 @@ func NewSimulator() (*ControlPlaneSimulator, error) {
 	return &ControlPlaneSimulator{}, nil
 }
 
-func (c *ControlPlaneSimulator) ProviderStart(ctx context.Context, processId string, agreementId string, datasetId string) (*dsdk.DataAddress, error) {
+func (c *ControlPlaneSimulator) ProviderStart(ctx context.Context, processID string, agreementId string, datasetId string) (*dsdk.DataAddress, error) {
 	callbackURL, _ := url.Parse(providerCallbackURL)
 
 	startMessage := dsdk.DataFlowStartMessage{
 		DataFlowBaseMessage: dsdk.DataFlowBaseMessage{
-			MessageId:        uuid.NewString(),
-			AgreementId:      agreementId,
-			DatasetId:        datasetId,
-			ProcessId:        processId,
+			MessageID:        uuid.NewString(),
+			AgreementID:      agreementId,
+			DatasetID:        datasetId,
+			ProcessID:        processID,
 			DataspaceContext: "dscontext",
-			CounterPartyId:   "did:web:consumer.com",
-			ParticipantId:    "did:web:provider.com",
+			CounterPartyID:   "did:web:consumer.com",
+			ParticipantID:    "did:web:provider.com",
 			CallbackAddress:  dsdk.CallbackURL(*callbackURL),
 			TransferType:     dsdk.TransferType{DestinationType: "custom", FlowType: dsdk.Pull},
 		},
@@ -98,16 +98,16 @@ func (c *ControlPlaneSimulator) ProviderStart(ctx context.Context, processId str
 	return &message.DataAddress, nil
 }
 
-func (c *ControlPlaneSimulator) ConsumerStart(ctx context.Context, processId string, source dsdk.DataAddress) error {
+func (c *ControlPlaneSimulator) ConsumerStart(ctx context.Context, processID string, source dsdk.DataAddress) error {
 	callbackURL, _ := url.Parse(providerCallbackURL)
 	startMessage := dsdk.DataFlowStartMessage{
 		DataFlowBaseMessage: dsdk.DataFlowBaseMessage{
-			MessageId:        uuid.NewString(),
-			ProcessId:        processId,
-			AgreementId:      uuid.NewString(),
+			MessageID:        uuid.NewString(),
+			ProcessID:        processID,
+			AgreementID:      uuid.NewString(),
 			DataspaceContext: "dscontext",
-			ParticipantId:    "did:web:consumer.com",
-			CounterPartyId:   "did:web:provider.com",
+			ParticipantID:    "did:web:consumer.com",
+			CounterPartyID:   "did:web:provider.com",
 			CallbackAddress:  dsdk.CallbackURL(*callbackURL),
 			TransferType:     dsdk.TransferType{DestinationType: "custom", FlowType: dsdk.Pull},
 		},
@@ -150,17 +150,17 @@ func (c *ControlPlaneSimulator) ConsumerStart(ctx context.Context, processId str
 	return nil
 }
 
-func (c *ControlPlaneSimulator) ConsumerPrepare(ctx context.Context, processId string, agreementId string, datasetId string) error {
+func (c *ControlPlaneSimulator) ConsumerPrepare(ctx context.Context, processID string, agreementId string, datasetId string) error {
 	callbackURL, _ := url.Parse(providerCallbackURL)
 	prepareMessage := dsdk.DataFlowPrepareMessage{
 		DataFlowBaseMessage: dsdk.DataFlowBaseMessage{
-			MessageId:        uuid.NewString(),
-			AgreementId:      agreementId,
-			DatasetId:        datasetId,
-			ProcessId:        processId,
+			MessageID:        uuid.NewString(),
+			AgreementID:      agreementId,
+			DatasetID:        datasetId,
+			ProcessID:        processID,
 			DataspaceContext: "dscontext",
-			ParticipantId:    "did:web:consumer.com",
-			CounterPartyId:   "did:web:provider.com",
+			ParticipantID:    "did:web:consumer.com",
+			CounterPartyID:   "did:web:provider.com",
 			CallbackAddress:  dsdk.CallbackURL(*callbackURL),
 			TransferType:     dsdk.TransferType{DestinationType: "custom", FlowType: dsdk.Pull},
 		},
@@ -202,8 +202,8 @@ func (c *ControlPlaneSimulator) ConsumerPrepare(ctx context.Context, processId s
 	return nil
 }
 
-func (c *ControlPlaneSimulator) ProviderTerminate(ctx context.Context, processId string, agreementId string, datasetId string) error {
-	terminateMessage := dsdk.DataFlowTerminateMessage{Reason: "violation"}
+func (c *ControlPlaneSimulator) ProviderTerminate(ctx context.Context, processID string, agreementId string, datasetId string) error {
+	terminateMessage := dsdk.DataFlowTransitionMessage{Reason: "violation"}
 
 	serialized, err := json.Marshal(terminateMessage)
 	if err != nil {
@@ -211,7 +211,7 @@ func (c *ControlPlaneSimulator) ProviderTerminate(ctx context.Context, processId
 	}
 
 	// Create the request
-	providerSignallingUrl := fmt.Sprintf(terminateUrl, common.ProviderSignallingPort, processId)
+	providerSignallingUrl := fmt.Sprintf(terminateUrl, common.ProviderSignallingPort, processID)
 	req, err := http.NewRequestWithContext(ctx, "POST", providerSignallingUrl, bytes.NewBuffer(serialized))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)

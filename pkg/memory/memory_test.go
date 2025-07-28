@@ -41,10 +41,10 @@ func TestInMemoryStore_FindById(t *testing.T) {
 		// Create a test flow
 		flow := &dsdk.DataFlow{
 			ID:               "test-flow-1",
-			RuntimeId:        "runtime-1",
-			ParticipantId:    "participant-1",
+			RuntimeID:        "runtime-1",
+			ParticipantID:    "participant-1",
 			DataspaceContext: "dataspace-1",
-			CounterPartyId:   "counterparty-1",
+			CounterPartyID:   "counterparty-1",
 			State:            dsdk.Started,
 			CreatedAt:        time.Now().UnixMilli(),
 		}
@@ -58,7 +58,7 @@ func TestInMemoryStore_FindById(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Equal(t, "test-flow-1", result.ID)
-		assert.Equal(t, "runtime-1", result.RuntimeId)
+		assert.Equal(t, "runtime-1", result.RuntimeID)
 
 		// Verify it's a copy, not the same reference
 		assert.NotSame(t, flow, result)
@@ -81,10 +81,10 @@ func TestInMemoryStore_Create(t *testing.T) {
 	t.Run("create valid flow", func(t *testing.T) {
 		flow := &dsdk.DataFlow{
 			ID:               "test-flow-1",
-			RuntimeId:        "runtime-1",
-			ParticipantId:    "participant-1",
+			RuntimeID:        "runtime-1",
+			ParticipantID:    "participant-1",
 			DataspaceContext: "dataspace-1",
-			CounterPartyId:   "counterparty-1",
+			CounterPartyID:   "counterparty-1",
 			State:            dsdk.Started,
 			CreatedAt:        time.Now().UnixMilli(),
 		}
@@ -99,7 +99,7 @@ func TestInMemoryStore_Create(t *testing.T) {
 		require.NoError(t, err)
 		assert.NotSame(t, flow, storedFlow)
 		assert.Equal(t, flow.ID, storedFlow.ID)
-		assert.Equal(t, flow.RuntimeId, storedFlow.RuntimeId)
+		assert.Equal(t, flow.RuntimeID, storedFlow.RuntimeID)
 	})
 
 	t.Run("create with nil flow", func(t *testing.T) {
@@ -111,7 +111,7 @@ func TestInMemoryStore_Create(t *testing.T) {
 
 	t.Run("create with empty id", func(t *testing.T) {
 		flow := &dsdk.DataFlow{
-			RuntimeId: "runtime-1",
+			RuntimeID: "runtime-1",
 		}
 
 		err := store.Create(ctx, flow)
@@ -123,7 +123,7 @@ func TestInMemoryStore_Create(t *testing.T) {
 	t.Run("create duplicate flow", func(t *testing.T) {
 		flow := &dsdk.DataFlow{
 			ID:        "duplicate-flow",
-			RuntimeId: "runtime-1",
+			RuntimeID: "runtime-1",
 		}
 
 		// Create first time
@@ -145,7 +145,7 @@ func TestInMemoryStore_Save(t *testing.T) {
 		// First create a flow
 		originalFlow := &dsdk.DataFlow{
 			ID:        "test-flow-1",
-			RuntimeId: "runtime-1",
+			RuntimeID: "runtime-1",
 			State:     dsdk.Started,
 		}
 
@@ -155,7 +155,7 @@ func TestInMemoryStore_Save(t *testing.T) {
 		// Update the flow
 		updatedFlow := &dsdk.DataFlow{
 			ID:        "test-flow-1",
-			RuntimeId: "runtime-1-updated",
+			RuntimeID: "runtime-1-updated",
 			State:     dsdk.Completed,
 			UpdatedAt: time.Now().UnixMilli(),
 		}
@@ -168,7 +168,7 @@ func TestInMemoryStore_Save(t *testing.T) {
 		storedFlow, err := store.FindById(ctx, "test-flow-1")
 		require.NoError(t, err)
 		assert.Equal(t, "test-flow-1", storedFlow.ID)
-		assert.Equal(t, "runtime-1-updated", storedFlow.RuntimeId)
+		assert.Equal(t, "runtime-1-updated", storedFlow.RuntimeID)
 		assert.Equal(t, dsdk.Completed, storedFlow.State)
 
 		// Verify it's stored as a copy
@@ -178,7 +178,7 @@ func TestInMemoryStore_Save(t *testing.T) {
 	t.Run("save non-existing flow", func(t *testing.T) {
 		flow := &dsdk.DataFlow{
 			ID:        "non-existing",
-			RuntimeId: "runtime-1",
+			RuntimeID: "runtime-1",
 		}
 
 		err := store.Save(ctx, flow)
@@ -196,7 +196,7 @@ func TestInMemoryStore_Save(t *testing.T) {
 
 	t.Run("save with empty id", func(t *testing.T) {
 		flow := &dsdk.DataFlow{
-			RuntimeId: "runtime-1",
+			RuntimeID: "runtime-1",
 		}
 
 		err := store.Save(ctx, flow)
@@ -214,7 +214,7 @@ func TestInMemoryStore_Delete(t *testing.T) {
 		// First create a flow
 		flow := &dsdk.DataFlow{
 			ID:        "test-flow-1",
-			RuntimeId: "runtime-1",
+			RuntimeID: "runtime-1",
 		}
 
 		err := store.Create(ctx, flow)
@@ -261,9 +261,9 @@ func TestInMemoryStore_AcquireDataFlowsForRecovery(t *testing.T) {
 	t.Run("store with flows", func(t *testing.T) {
 		// Add multiple flows
 		flows := []*dsdk.DataFlow{
-			{ID: "flow-1", RuntimeId: "runtime-1", State: dsdk.Started},
-			{ID: "flow-2", RuntimeId: "runtime-2", State: dsdk.Suspended},
-			{ID: "flow-3", RuntimeId: "runtime-3", State: dsdk.Completed},
+			{ID: "flow-1", RuntimeID: "runtime-1", State: dsdk.Started},
+			{ID: "flow-2", RuntimeID: "runtime-2", State: dsdk.Suspended},
+			{ID: "flow-3", RuntimeID: "runtime-3", State: dsdk.Completed},
 		}
 
 		for _, flow := range flows {
@@ -380,7 +380,7 @@ func TestInMemoryStore_ThreadSafety(t *testing.T) {
 			for j := 0; j < numOperations; j++ {
 				flow := &dsdk.DataFlow{
 					ID:        fmt.Sprintf("flow-%d-%d", routineID, j),
-					RuntimeId: fmt.Sprintf("runtime-%d-%d", routineID, j),
+					RuntimeID: fmt.Sprintf("runtime-%d-%d", routineID, j),
 				}
 				store.Create(ctx, flow)
 			}
@@ -404,7 +404,7 @@ func TestInMemoryStore_ThreadSafety(t *testing.T) {
 			for j := 0; j < numOperations; j++ {
 				flow := &dsdk.DataFlow{
 					ID:        fmt.Sprintf("flow-%d-%d", routineID, j),
-					RuntimeId: fmt.Sprintf("updated-runtime-%d-%d", routineID, j),
+					RuntimeID: fmt.Sprintf("updated-runtime-%d-%d", routineID, j),
 				}
 				store.Save(ctx, flow)
 			}
@@ -452,7 +452,7 @@ func TestInMemoryStore_DataIsolation(t *testing.T) {
 	t.Run("modifications to returned flow don't affect stored flow", func(t *testing.T) {
 		originalFlow := &dsdk.DataFlow{
 			ID:        "test-flow",
-			RuntimeId: "original-runtime",
+			RuntimeID: "original-runtime",
 			State:     dsdk.Started,
 		}
 
@@ -463,21 +463,21 @@ func TestInMemoryStore_DataIsolation(t *testing.T) {
 		retrievedFlow, err := store.FindById(ctx, "test-flow")
 		require.NoError(t, err)
 
-		retrievedFlow.RuntimeId = "modified-runtime"
+		retrievedFlow.RuntimeID = "modified-runtime"
 		retrievedFlow.State = dsdk.Completed
 
 		// Verify the stored flow is unchanged
 		storedFlow, err := store.FindById(ctx, "test-flow")
 		require.NoError(t, err)
 
-		assert.Equal(t, "original-runtime", storedFlow.RuntimeId)
+		assert.Equal(t, "original-runtime", storedFlow.RuntimeID)
 		assert.Equal(t, dsdk.Started, storedFlow.State)
 	})
 
 	t.Run("modifications to input flow don't affect stored flow", func(t *testing.T) {
 		inputFlow := &dsdk.DataFlow{
 			ID:        "test-flow-2",
-			RuntimeId: "original-runtime",
+			RuntimeID: "original-runtime",
 			State:     dsdk.Started,
 		}
 
@@ -485,14 +485,14 @@ func TestInMemoryStore_DataIsolation(t *testing.T) {
 		require.NoError(t, err)
 
 		// Modify the input flow after creation
-		inputFlow.RuntimeId = "modified-runtime"
+		inputFlow.RuntimeID = "modified-runtime"
 		inputFlow.State = dsdk.Completed
 
 		// Verify the stored flow is unchanged
 		storedFlow, err := store.FindById(ctx, "test-flow-2")
 		require.NoError(t, err)
 
-		assert.Equal(t, "original-runtime", storedFlow.RuntimeId)
+		assert.Equal(t, "original-runtime", storedFlow.RuntimeID)
 		assert.Equal(t, dsdk.Started, storedFlow.State)
 	})
 }

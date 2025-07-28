@@ -81,13 +81,13 @@ type TransferType struct {
 }
 
 type DataFlowBaseMessage struct {
-	MessageId              string       `json:"messageId"` // NEW
-	ParticipantId          string       `json:"participantId"`
-	CounterPartyId         string       `json:"counterPartyId"`
+	MessageID              string       `json:"messageID"` // NEW
+	ParticipantID          string       `json:"participantID"`
+	CounterPartyID         string       `json:"counterPartyID"`
 	DataspaceContext       string       `json:"dataspceContext"`
-	ProcessId              string       `json:"processId"`
-	AgreementId            string       `json:"agreementId"`
-	DatasetId              string       `json:"datasetId"`
+	ProcessID              string       `json:"processID"`
+	AgreementID            string       `json:"agreementID"`
+	DatasetID              string       `json:"datasetID"`
 	CallbackAddress        CallbackURL  `json:"callbackAddress"`
 	TransferType           TransferType `json:"transferType"`
 	DestinationDataAddress DataAddress  `json:"destinationDataAddress"`
@@ -102,10 +102,9 @@ type DataFlowPrepareMessage struct {
 	DataFlowBaseMessage
 }
 
-type DataFlowTerminateMessage struct {
+type DataFlowTransitionMessage struct {
 	Reason string `json:"reason"`
 }
-
 type DataFlowResponseMessage struct {
 	DataplaneId string        `json:"dataplaneId"`
 	DataAddress DataAddress   `json:"dataAddress"`
@@ -153,14 +152,14 @@ type DataFlow struct {
 	ID                     string
 	Version                int64
 	Consumer               bool
-	AgreementId            string
-	DatasetId              string
-	RuntimeId              string
+	AgreementID            string
+	DatasetID              string
+	RuntimeID              string
 	UpdatedAt              int64
 	CreatedAt              int64
-	ParticipantId          string
+	ParticipantID          string
 	DataspaceContext       string
-	CounterPartyId         string
+	CounterPartyID         string
 	CallbackAddress        CallbackURL
 	TransferType           TransferType
 	State                  DataFlowState
@@ -289,8 +288,8 @@ func (b *DataFlowBuilder) CreatedAt(createdAt int64) *DataFlowBuilder {
 	return b
 }
 
-func (b *DataFlowBuilder) ParticipantId(id string) *DataFlowBuilder {
-	b.dataFlow.ParticipantId = id
+func (b *DataFlowBuilder) ParticipantID(id string) *DataFlowBuilder {
+	b.dataFlow.ParticipantID = id
 	return b
 }
 
@@ -299,8 +298,8 @@ func (b *DataFlowBuilder) DataspaceContext(context string) *DataFlowBuilder {
 	return b
 }
 
-func (b *DataFlowBuilder) CounterpartyId(id string) *DataFlowBuilder {
-	b.dataFlow.CounterPartyId = id
+func (b *DataFlowBuilder) CounterpartyID(id string) *DataFlowBuilder {
+	b.dataFlow.CounterPartyID = id
 	return b
 }
 
@@ -345,17 +344,17 @@ func (b *DataFlowBuilder) ErrorDetail(error string) *DataFlowBuilder {
 }
 
 func (b *DataFlowBuilder) RuntimeId(id string) *DataFlowBuilder {
-	b.dataFlow.RuntimeId = id
+	b.dataFlow.RuntimeID = id
 	return b
 }
 
-func (b *DataFlowBuilder) DatasetId(id string) *DataFlowBuilder {
-	b.dataFlow.DatasetId = id
+func (b *DataFlowBuilder) DatasetID(id string) *DataFlowBuilder {
+	b.dataFlow.DatasetID = id
 	return b
 }
 
-func (b *DataFlowBuilder) AgreementId(id string) *DataFlowBuilder {
-	b.dataFlow.AgreementId = id
+func (b *DataFlowBuilder) AgreementID(id string) *DataFlowBuilder {
+	b.dataFlow.AgreementID = id
 	return b
 }
 
@@ -378,16 +377,16 @@ func (b *DataFlowBuilder) Build() (*DataFlow, error) {
 		validationErrs = append(validationErrs, "ID is required")
 	}
 
-	if b.dataFlow.ParticipantId == "" {
-		validationErrs = append(validationErrs, "ParticipantId is required")
+	if b.dataFlow.ParticipantID == "" {
+		validationErrs = append(validationErrs, "ParticipantID is required")
 	}
 
 	if b.dataFlow.DataspaceContext == "" {
 		validationErrs = append(validationErrs, "DataspaceContext is required")
 	}
 
-	if b.dataFlow.CounterPartyId == "" {
-		validationErrs = append(validationErrs, "CounterPartyId is required")
+	if b.dataFlow.CounterPartyID == "" {
+		validationErrs = append(validationErrs, "CounterPartyID is required")
 	}
 
 	if b.dataFlow.CallbackAddress.URL().String() == "" {

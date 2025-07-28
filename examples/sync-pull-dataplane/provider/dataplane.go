@@ -115,10 +115,10 @@ func (d *ProviderDataPlane) startProcessor(ctx context.Context, flow *dsdk.DataF
 	// Store token first, then build data address
 	tokenEntry := tokenEntry{
 		token:    token,
-		datsetId: flow.DatasetId,
-		binding:  flow.CounterPartyId,
+		datsetId: flow.DatasetID,
+		binding:  flow.CounterPartyID,
 	}
-	d.tokenStore.Create(flow.DatasetId, tokenEntry) // token is pinned to the flow ID which is the transfer process id on the control plane
+	d.tokenStore.Create(flow.DatasetID, tokenEntry) // token is pinned to the flow ID which is the transfer process id on the control plane
 
 	err := flow.TransitionToStarted()
 	if err != nil {
@@ -135,7 +135,7 @@ func (d *ProviderDataPlane) startProcessor(ctx context.Context, flow *dsdk.DataF
 		return nil, fmt.Errorf("failed to build data address: %w", err)
 	}
 
-	log.Printf("[Provider Data Plane] Started transfer for %s and returning access token\n", flow.CounterPartyId)
+	log.Printf("[Provider Data Plane] Started transfer for %s and returning access token\n", flow.CounterPartyID)
 	return &dsdk.DataFlowResponseMessage{State: flow.State, DataAddress: *da}, nil
 }
 
@@ -185,7 +185,7 @@ func (d *ProviderDataPlane) transferDataset(w http.ResponseWriter, r *http.Reque
 	}
 
 	datasetContent := &DatasetContent{
-		DatasetId: datasetId,
+		DatasetID: datasetId,
 	}
 
 	w.Header().Set(contentType, jsonContentType)
@@ -204,5 +204,5 @@ type tokenEntry struct {
 }
 
 type DatasetContent struct {
-	DatasetId string `json:"datasetId"`
+	DatasetID string `json:"datasetID"`
 }

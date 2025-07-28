@@ -16,8 +16,8 @@ func Test_dataFlowStartSerialize(t *testing.T) {
 	build, _ := NewDataAddressBuilder().Property("foo", "bar").Build()
 	original := DataFlowStartMessage{
 		DataFlowBaseMessage: DataFlowBaseMessage{
-			ParticipantId:   "participant123",
-			AgreementId:     "agreement456",
+			ParticipantID:   "participant123",
+			AgreementID:     "agreement456",
 			CallbackAddress: CallbackURL(*callbackURL),
 			TransferType: TransferType{
 				DestinationType: "PULL",
@@ -41,12 +41,12 @@ func Test_dataFlowStartSerialize(t *testing.T) {
 
 	var errs []error
 
-	if decoded.ParticipantId != original.ParticipantId {
-		errs = append(errs, fmt.Errorf("invalid ParticipantId"))
+	if decoded.ParticipantID != original.ParticipantID {
+		errs = append(errs, fmt.Errorf("invalid ParticipantID"))
 	}
 
-	if decoded.AgreementId != original.AgreementId {
-		errs = append(errs, fmt.Errorf("invalid AgreementId"))
+	if decoded.AgreementID != original.AgreementID {
+		errs = append(errs, fmt.Errorf("invalid AgreementID"))
 	}
 
 	if decoded.CallbackAddress != original.CallbackAddress {
@@ -78,9 +78,9 @@ func TestDataFlowBuilder_Build(t *testing.T) {
 					ID("test-id").
 					UpdatedAt(int64(time.Now().Unix())).
 					CreatedAt(int64(time.Now().Unix())).
-					ParticipantId("part-123").
+					ParticipantID("part-123").
 					DataspaceContext("ctx-123").
-					CounterpartyId("counter-123").
+					CounterpartyID("counter-123").
 					State(Started).
 					StateTimestamp(time.Now().Unix()).
 					SourceDataAddress(DataAddress{Properties: map[string]any{"source": "test"}}).
@@ -134,14 +134,14 @@ func TestDataFlowBuilder_Build(t *testing.T) {
 			if flow.CreatedAt == 0 {
 				t.Error("CreatedAt is zero")
 			}
-			if flow.ParticipantId == "" {
-				t.Error("ParticipantId is empty")
+			if flow.ParticipantID == "" {
+				t.Error("ParticipantID is empty")
 			}
 			if flow.DataspaceContext == "" {
 				t.Error("DataspaceContext is empty")
 			}
-			if flow.CounterPartyId == "" {
-				t.Error("CounterPartyId is empty")
+			if flow.CounterPartyID == "" {
+				t.Error("CounterPartyID is empty")
 			}
 			if flow.StateTimestamp == 0 {
 				t.Error("StateTimestamp is zero")
@@ -214,9 +214,9 @@ func createValidBuilder(validURL *url.URL) *DataFlowBuilder {
 		ID("test-id").
 		UpdatedAt(int64(time.Now().Unix())).
 		CreatedAt(int64(time.Now().Unix())).
-		ParticipantId("part-123").
+		ParticipantID("part-123").
 		DataspaceContext("ctx-123").
-		CounterpartyId("counter-123").
+		CounterpartyID("counter-123").
 		State(Started).
 		StateTimestamp(time.Now().Unix()).
 		SourceDataAddress(DataAddress{Properties: map[string]any{"source": "test"}}).
