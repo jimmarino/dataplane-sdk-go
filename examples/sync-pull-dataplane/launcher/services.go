@@ -23,7 +23,7 @@ import (
 func LaunchServicesAndWait(wg *sync.WaitGroup) {
 	go func() {
 		// Launch services
-		providerDataPlane, consumerDataPlane := LaunchService()
+		providerDataPlane, consumerDataPlane := LaunchServices()
 
 		wg.Wait()
 
@@ -35,7 +35,7 @@ func LaunchServicesAndWait(wg *sync.WaitGroup) {
 	}()
 }
 
-func LaunchService() (*provider.ProviderDataPlane, *consumer.ConsumerDataPlane) {
+func LaunchServices() (*provider.ProviderDataPlane, *consumer.ConsumerDataPlane) {
 	providerDataPlane, err := provider.NewDataPlane()
 	if err != nil {
 		panic(err)

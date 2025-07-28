@@ -2,7 +2,6 @@ package dsdk
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/url"
 	"time"
@@ -11,8 +10,13 @@ import (
 type FlowType string
 
 const (
-	Pull FlowType = "pull"
-	Push FlowType = "push"
+	Pull               FlowType = "pull"
+	Push               FlowType = "push"
+	TypeKey                     = "@type"
+	DataAddressType             = "DataAddress"
+	EndpointKey                 = "endpoint"
+	EndpointType                = "endpointType"
+	EndpointProperties          = "endpointProperties"
 )
 
 type DataAddress struct {
@@ -34,6 +38,26 @@ func (b *DataAddressBuilder) Property(key string, value any) *DataAddressBuilder
 	return b
 }
 
+func (b *DataAddressBuilder) EndpointProperty(key string, typeVal string, value any) *DataAddressBuilder {
+	endpointProps := b.properties[EndpointProperties]
+	if endpointProps == nil {
+		endpointProps = make([]any, 0)
+		b.properties[EndpointProperties] = endpointProps
+	}
+	if endpoints, ok := endpointProps.([]any); ok {
+		props := map[string]any{
+			"key":   key,
+			"type":  typeVal,
+			"value": value,
+		}
+		endpoints = append(endpoints, props)
+		b.properties[EndpointProperties] = endpoints
+	} else {
+		panic("endpoint properties is not an array")
+	}
+	return b
+}
+
 func (b *DataAddressBuilder) Properties(props map[string]any) *DataAddressBuilder {
 	for k, v := range props {
 		b.properties[k] = v
@@ -42,8 +66,8 @@ func (b *DataAddressBuilder) Properties(props map[string]any) *DataAddressBuilde
 }
 
 func (b *DataAddressBuilder) Build() (*DataAddress, error) {
-	if len(b.properties) == 0 {
-		return nil, errors.New("properties are required")
+	if b.properties[TypeKey] == nil {
+		b.properties[TypeKey] = DataAddressType
 	}
 
 	return &DataAddress{
@@ -76,6 +100,10 @@ type DataFlowStartMessage struct {
 
 type DataFlowPrepareMessage struct {
 	DataFlowBaseMessage
+}
+
+type DataFlowTerminateMessage struct {
+	Reason string `json:"reason"`
 }
 
 type DataFlowResponseMessage struct {

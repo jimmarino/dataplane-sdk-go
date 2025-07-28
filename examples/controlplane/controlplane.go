@@ -26,8 +26,14 @@ import (
 	"github.com/metaform/dataplane-sdk-go/pkg/dsdk"
 )
 
-const startUrl = "http://localhost:%d/start"
-const consumerPrepareUrl = "http://localhost:%d/prepare"
+const (
+	startUrl            = "http://localhost:%d/start"
+	terminateUrl        = "http://localhost:%d/terminate/%s"
+	consumerPrepareURL  = "http://localhost:%d/prepare"
+	providerCallbackURL = "http://provider.com/dp/callback"
+	contentType         = "Content-Type"
+	jsonContentType     = "application/json"
+)
 
 // ControlPlaneSimulator simulates control plane interactions between a consumer and provider and drives their respective data planes.
 type ControlPlaneSimulator struct {
@@ -40,8 +46,7 @@ func NewSimulator() (*ControlPlaneSimulator, error) {
 }
 
 func (c *ControlPlaneSimulator) ProviderStart(ctx context.Context, processId string, agreementId string, datasetId string) (*dsdk.DataAddress, error) {
-
-	callbackURL, _ := url.Parse("http://provider.com/dp/callback")
+	callbackURL, _ := url.Parse(providerCallbackURL)
 
 	startMessage := dsdk.DataFlowStartMessage{
 		DataFlowBaseMessage: dsdk.DataFlowBaseMessage{
@@ -63,13 +68,13 @@ func (c *ControlPlaneSimulator) ProviderStart(ctx context.Context, processId str
 	}
 
 	// Create the request
-	url := fmt.Sprintf(startUrl, common.ProviderSignallingPort)
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(serialized))
+	providerSignallingUrl := fmt.Sprintf(startUrl, common.ProviderSignallingPort)
+	req, err := http.NewRequestWithContext(ctx, "POST", providerSignallingUrl, bytes.NewBuffer(serialized))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(contentType, jsonContentType)
 
 	client := &http.Client{
 		Timeout: 30 * time.Second,
@@ -94,7 +99,7 @@ func (c *ControlPlaneSimulator) ProviderStart(ctx context.Context, processId str
 }
 
 func (c *ControlPlaneSimulator) ConsumerStart(ctx context.Context, processId string, source dsdk.DataAddress) error {
-	callbackURL, _ := url.Parse("http://provider.com/dp/callback")
+	callbackURL, _ := url.Parse(providerCallbackURL)
 	startMessage := dsdk.DataFlowStartMessage{
 		DataFlowBaseMessage: dsdk.DataFlowBaseMessage{
 			MessageId:        uuid.NewString(),
@@ -115,13 +120,13 @@ func (c *ControlPlaneSimulator) ConsumerStart(ctx context.Context, processId str
 	}
 
 	// Create the request
-	url := fmt.Sprintf(startUrl, common.ConsumerSignallingPort)
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(serialized))
+	consumerSignallingUrl := fmt.Sprintf(startUrl, common.ConsumerSignallingPort)
+	req, err := http.NewRequestWithContext(ctx, "POST", consumerSignallingUrl, bytes.NewBuffer(serialized))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(contentType, jsonContentType)
 
 	client := &http.Client{
 		Timeout: 30 * time.Second,
@@ -146,7 +151,7 @@ func (c *ControlPlaneSimulator) ConsumerStart(ctx context.Context, processId str
 }
 
 func (c *ControlPlaneSimulator) ConsumerPrepare(ctx context.Context, processId string, agreementId string, datasetId string) error {
-	callbackURL, _ := url.Parse("http://provider.com/dp/callback")
+	callbackURL, _ := url.Parse(providerCallbackURL)
 	prepareMessage := dsdk.DataFlowPrepareMessage{
 		DataFlowBaseMessage: dsdk.DataFlowBaseMessage{
 			MessageId:        uuid.NewString(),
@@ -167,13 +172,13 @@ func (c *ControlPlaneSimulator) ConsumerPrepare(ctx context.Context, processId s
 	}
 
 	// Create the request
-	url := fmt.Sprintf(consumerPrepareUrl, common.ConsumerSignallingPort)
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(serialized))
+	consumerSignallingUrl := fmt.Sprintf(consumerPrepareURL, common.ConsumerSignallingPort)
+	req, err := http.NewRequestWithContext(ctx, "POST", consumerSignallingUrl, bytes.NewBuffer(serialized))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(contentType, jsonContentType)
 
 	client := &http.Client{
 		Timeout: 30 * time.Second,
@@ -192,6 +197,40 @@ func (c *ControlPlaneSimulator) ConsumerPrepare(ctx context.Context, processId s
 	var message dsdk.DataFlowResponseMessage
 	if err := json.NewDecoder(resp.Body).Decode(&message); err != nil {
 		return fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return nil
+}
+
+func (c *ControlPlaneSimulator) ProviderTerminate(ctx context.Context, processId string, agreementId string, datasetId string) error {
+	terminateMessage := dsdk.DataFlowTerminateMessage{Reason: "violation"}
+
+	serialized, err := json.Marshal(terminateMessage)
+	if err != nil {
+		return fmt.Errorf("failed to marshal terminate message: %w", err)
+	}
+
+	// Create the request
+	providerSignallingUrl := fmt.Sprintf(terminateUrl, common.ProviderSignallingPort, processId)
+	req, err := http.NewRequestWithContext(ctx, "POST", providerSignallingUrl, bytes.NewBuffer(serialized))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set(contentType, jsonContentType)
+
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("start request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
 	return nil

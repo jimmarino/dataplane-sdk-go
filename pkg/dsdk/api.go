@@ -14,9 +14,12 @@ package dsdk
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/google/uuid"
 	"net/http"
+	"net/url"
+	"strings"
 )
 
 const jsonContentType = "application/json"
@@ -84,6 +87,34 @@ func (d *DataPlaneApi) Start(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func (d *DataPlaneApi) Terminate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Invalid request method", http.StatusBadRequest)
+		return
+	}
+
+	processID, err := ParseIDFromURL(r.URL)
+	if err != nil {
+		d.processError(w)
+		return
+	}
+	var terminateMessage DataFlowTerminateMessage
+
+	if err := json.NewDecoder(r.Body).Decode(&terminateMessage); err != nil {
+		d.decodeError(w, err)
+		return
+	}
+
+	err = d.sdk.Terminate(r.Context(), processID)
+	if err != nil {
+		d.processError(w)
+		return
+	}
+
+	w.Header().Set("Content-Type", jsonContentType)
+	w.WriteHeader(http.StatusOK)
+}
+
 func (d *DataPlaneApi) decodeError(w http.ResponseWriter, err error) {
 	id := uuid.NewString()
 	d.sdk.Monitor.Printf("Error decoding flow [%s]: %v\n", id, err)
@@ -99,7 +130,7 @@ func (d *DataPlaneApi) processError(w http.ResponseWriter) {
 
 func (d *DataPlaneApi) writeResponse(w http.ResponseWriter, code int, response *DataFlowResponseMessage) {
 	w.Header().Set("Content-Type", jsonContentType)
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(code)
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		id := uuid.NewString()
 		message := fmt.Sprintf("Error encoding response [%s]", id)
@@ -107,4 +138,30 @@ func (d *DataPlaneApi) writeResponse(w http.ResponseWriter, code int, response *
 		d.writeResponse(w, http.StatusInternalServerError, &DataFlowResponseMessage{Error: message})
 		return
 	}
+}
+
+func ParseIDFromURL(u *url.URL) (string, error) {
+	if u == nil {
+		return "", errors.New("URL cannot be nil")
+	}
+
+	path := u.Path
+	if path == "" {
+		return "", errors.New("URL path is empty")
+	}
+
+	// Remove trailing slash if present
+	path = strings.TrimSuffix(path, "/")
+
+	// Split the path by '/' to get path segments
+	pathParts := strings.Split(path, "/")
+
+	// Find the last non-empty segment
+	for i := len(pathParts) - 1; i >= 0; i-- {
+		if pathParts[i] != "" {
+			return pathParts[i], nil
+		}
+	}
+
+	return "", errors.New("no valid ID found in URL path")
 }

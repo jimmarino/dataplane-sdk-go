@@ -23,6 +23,11 @@ import (
 	"net/http"
 )
 
+const (
+	contentType     = "Content-Type"
+	jsonContentType = "application/json"
+)
+
 // ConsumerDataPlane is a consumer data plane that demonstrates how to use the Data Plane SDK. This implementation supports
 // the transfer of simple JSON datasets over HTTP and Data Plane Signalling start and prepare handling using synchronous responses.
 // After a transfer is started, clients obtain the access token from this data plane and issue the request to the provider data plane.
@@ -92,7 +97,7 @@ func (d *ConsumerDataPlane) prepareProcessor(ctx context.Context, flow *dsdk.Dat
 
 func (d *ConsumerDataPlane) startProcessor(ctx context.Context, flow *dsdk.DataFlow, sdk *dsdk.DataPlaneSDK, options *dsdk.ProcessorOptions) (*dsdk.DataFlowResponseMessage, error) {
 	log.Printf("[Consumer Data Plane] Transfer access token available for participant %s dataset %s\n", flow.ParticipantId, flow.DatasetId)
-	endpoint := options.SourceDataAddress.Properties["endpoint"].(string)
+	endpoint := options.SourceDataAddress.Properties[dsdk.EndpointKey].(string)
 	token := options.SourceDataAddress.Properties["token"].(string)
 	d.tokenStore.Create(flow.DatasetId, tokenEntry{datasetId: flow.DatasetId, token: token, endpoint: endpoint})
 	return &dsdk.DataFlowResponseMessage{State: dsdk.Started}, nil
@@ -124,7 +129,7 @@ func (d *ConsumerDataPlane) getEndpointToken(w http.ResponseWriter, r *http.Requ
 		Endpoint: entry.endpoint,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(contentType, jsonContentType)
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, "Failed to encode response: "+err.Error(), http.StatusInternalServerError)
 		return

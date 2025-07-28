@@ -24,6 +24,9 @@ func DefaultCopyFunc[T any](value T) T {
 	return value
 }
 
+// PredicateFunc defines a function type for filtering values
+type PredicateFunc[T any] func(key string, value T) bool
+
 // Store persists generic values in memory.
 type Store[T any] struct {
 	mu       sync.RWMutex
@@ -89,6 +92,37 @@ func (s *Store[T]) Find(key string) (T, bool) {
 		return s.copyFunc(value), true
 	}
 
+	var zero T
+	return zero, false
+}
+
+// FindFirst searches for the first item in the store that matches the given predicate
+// Returns the key, value, and a boolean indicating if a match was found
+func (s *Store[T]) FindFirst(predicate PredicateFunc[T]) (T, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	for key, value := range s.items {
+		if predicate(key, value) {
+			return s.copyFunc(value), true
+		}
+	}
+
+	var zero T
+	return zero, false
+}
+
+func (s *Store[T]) FindAndDelete(predicate PredicateFunc[T]) (T, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	for key, value := range s.items {
+		if predicate(key, value) {
+			val := s.copyFunc(value)
+			delete(s.items, key)
+			return val, true
+		}
+	}
 	var zero T
 	return zero, false
 }

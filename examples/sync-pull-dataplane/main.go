@@ -27,6 +27,12 @@ import (
 	"time"
 )
 
+const (
+	jsonContentType = "application/json"
+	accept          = "Accept"
+	authorization   = "Authorization"
+)
+
 // Demonstrates initiating a data transfer using a provider data plane that implements synchronous signalling start operations.
 func main() {
 
@@ -37,39 +43,38 @@ func main() {
 	launcher.LaunchServicesAndWait(&wg)
 
 	cp, err := controlplane.NewSimulator()
-
 	if err != nil {
-		fmt.Printf("Unable to launch control plane simulator: %v\n", err)
+		log.Fatalf("Unable to launch control plane simulator: %v\n", err)
 	}
+
 	ctx := context.Background()
 	defer ctx.Done()
 
 	agreementId := uuid.NewString()
 	datasetId := uuid.NewString()
 
+	consumerProcessId := uuid.NewString()
+	err = cp.ConsumerPrepare(ctx, consumerProcessId, agreementId, datasetId)
+	if err != nil {
+		log.Fatalf("Unable to send prepate to consumer control plane: %v\n", err)
+	}
+
 	// Signal to the provider data plane
 	providerProcessId := uuid.NewString()
 	da, err := cp.ProviderStart(ctx, providerProcessId, agreementId, datasetId)
 	if err != nil {
-		panic(err)
-	}
-
-	consumerProcessId := uuid.NewString()
-	err = cp.ConsumerPrepare(ctx, consumerProcessId, agreementId, datasetId)
-	if err != nil {
-		panic(err)
+		log.Fatalf("Unable to send start to provider control plane: %v\n", err)
 	}
 
 	// Signal to the consumer data plane in response
 	err = cp.ConsumerStart(ctx, consumerProcessId, *da)
 	if err != nil {
-		panic(err)
+		log.Fatalf("Unable to send start to consumer control plane: %v\n", err)
 	}
 
 	if err = transferDataset(datasetId); err != nil {
-		panic(err)
+		log.Fatalf("Unable to start data transfer: %v\n", err)
 	}
-
 }
 
 func transferDataset(datasetId string) error {
@@ -110,8 +115,8 @@ func transferDataset(datasetId string) error {
 	if err != nil {
 		return fmt.Errorf("failed to create dataset request: %w", err)
 	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", tokenResponse.Token))
-	req.Header.Set("Accept", "application/json")
+	req.Header.Set(authorization, fmt.Sprintf("Bearer %s", tokenResponse.Token))
+	req.Header.Set(accept, jsonContentType)
 
 	resp, err = httpClient.Do(req)
 	if err != nil {
@@ -123,6 +128,6 @@ func transferDataset(datasetId string) error {
 		return fmt.Errorf("unexpected response: %d", resp.StatusCode)
 
 	}
-	log.Printf("[Client] successful dataset request")
+	log.Printf("[Client] Successful dataset request")
 	return nil
 }

@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"net/url"
 	"testing"
 	"time"
@@ -153,6 +155,55 @@ func TestDataFlowBuilder_Build(t *testing.T) {
 			if flow.TransferType.FlowType == "" {
 				t.Error("TransferType flow type is empty")
 			}
+		})
+	}
+}
+
+func TestDataAddressBuilder_EndpointProperty(t *testing.T) {
+	tests := []struct {
+		name    string
+		key     string
+		typeVal string
+		value   any
+		want    any
+	}{
+		{
+			name:    "sets valid string property",
+			key:     "endpoint",
+			typeVal: "string",
+			value:   "https://api.example.com/v1/data",
+			want:    []interface{}{map[string]interface{}{"key": "endpoint", "type": "string", "value": "https://api.example.com/v1/data"}},
+		},
+		{
+			name:    "sets integer property",
+			key:     "port",
+			typeVal: "int",
+			value:   8080,
+			want:    []interface{}{map[string]interface{}{"key": "port", "type": "int", "value": 8080}},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			builder := NewDataAddressBuilder()
+			result := builder.EndpointProperty(tt.key, tt.typeVal, tt.value)
+
+			if result != builder {
+				t.Error("EndpointProperty should return the builder for method chaining")
+			}
+
+			// Build and verify the property was set
+			dataAddress, err := builder.Build()
+			if err != nil {
+				t.Fatalf("Build() failed: %v", err)
+			}
+
+			got, exists := dataAddress.Properties[EndpointProperties]
+			require.True(t, exists, "EndpointProperties not found in built DataAddress")
+
+			// Compare the entire slice using testify
+			assert.Equal(t, tt.want, got, "EndpointProperty slice should match expected")
+
 		})
 	}
 }

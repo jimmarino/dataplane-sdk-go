@@ -25,7 +25,11 @@ import (
 	"net/http"
 )
 
-const endpointUrl = "http://localhost:%d/datasets"
+const (
+	contentType     = "Content-Type"
+	jsonContentType = "application/json"
+	endpointUrl     = "http://localhost:%d/datasets"
+)
 
 // ProviderDataPlane is a provider data plane that demonstrates how to use the Data Plane SDK. This implementation supports
 // the transfer of simple JSON datasets over HTTP and Data Plane Signalling start and prepare handling using synchronous responses.
@@ -184,7 +188,7 @@ func (d *ProviderDataPlane) transferDataset(w http.ResponseWriter, r *http.Reque
 		DatasetId: datasetId,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(contentType, jsonContentType)
 	w.WriteHeader(http.StatusOK)
 
 	if err := json.NewEncoder(w).Encode(datasetContent); err != nil {
