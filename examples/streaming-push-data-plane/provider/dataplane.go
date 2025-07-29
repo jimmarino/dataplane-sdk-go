@@ -10,7 +10,7 @@
 //       Metaform Systems, Inc. - initial API and implementation
 //
 
-package consumer
+package provider
 
 import (
 	"context"
@@ -23,15 +23,15 @@ import (
 	"net/http"
 )
 
-type ConsumerDataPlane struct {
+type ProviderDataPlane struct {
 	api              *dsdk.DataPlaneApi
 	signallingServer *http.Server
 	dataServer       *http.Server
-	eventSubscriber  *natsservices.EventSubscriber
+	publisherService *EventPublisherService
 }
 
-func NewDataPlane(eventSubscriber *natsservices.EventSubscriber) (*ConsumerDataPlane, error) {
-	dataplane := &ConsumerDataPlane{eventSubscriber: eventSubscriber}
+func NewDataPlane(publisherService *EventPublisherService) (*ProviderDataPlane, error) {
+	dataplane := &ProviderDataPlane{publisherService: publisherService}
 	sdk, err := dsdk.NewDataPlaneSDKBuilder().
 		Store(memory.NewInMemoryStore()).
 		TransactionContext(memory.InMemoryTrxContext{}).
@@ -48,36 +48,34 @@ func NewDataPlane(eventSubscriber *natsservices.EventSubscriber) (*ConsumerDataP
 	return dataplane, nil
 }
 
-func (d *ConsumerDataPlane) Init() {
-	d.signallingServer = common.NewSignallingServer(d.api, common.ConsumerSignallingPort)
+func (d *ProviderDataPlane) Init() {
+	d.signallingServer = common.NewSignallingServer(d.api, common.ProviderSignallingPort)
 	// Start signaling server
 	go func() {
-		log.Printf("[Consumer Data Plane] Signalling server listening on port %d\n", common.ConsumerSignallingPort)
+		log.Printf("[Provider Data Plane] Signalling server listening on port %d\n", common.ProviderSignallingPort)
 		if err := d.signallingServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("Consumer signaling server failed to start: %v", err)
+			log.Fatalf("Provider signaling server failed to start: %v", err)
 		}
 	}()
 }
 
-func (d *ConsumerDataPlane) Shutdown(ctx context.Context) {
+func (d *ProviderDataPlane) Shutdown(ctx context.Context) {
 	if d.signallingServer != nil {
 		if err := d.signallingServer.Shutdown(ctx); err != nil {
-			log.Printf("Consumer signalling server shutdown error: %v", err)
+			log.Printf("Provider signalling server shutdown error: %v", err)
 		}
 	}
-	log.Println("Consumer data plane shutdown")
+	log.Println("Provider data plane shutdown")
 }
 
-func (d *ConsumerDataPlane) prepareProcessor(_ context.Context,
-	flow *dsdk.DataFlow,
+func (d *ProviderDataPlane) prepareProcessor(_ context.Context,
+	_ *dsdk.DataFlow,
 	_ *dsdk.DataPlaneSDK,
 	_ *dsdk.ProcessorOptions) (*dsdk.DataFlowResponseMessage, error) {
-
-	log.Printf("[Consumer Data Plane] Prepared transfer for participant %s dataset %s\n", flow.ParticipantID, flow.DatasetID)
-	return &dsdk.DataFlowResponseMessage{State: dsdk.Prepared}, nil
+	return nil, errors.New("not supported on provider")
 }
 
-func (d *ConsumerDataPlane) startProcessor(ctx context.Context,
+func (d *ProviderDataPlane) startProcessor(ctx context.Context,
 	flow *dsdk.DataFlow,
 	_ *dsdk.DataPlaneSDK,
 	options *dsdk.ProcessorOptions) (*dsdk.DataFlowResponseMessage, error) {
@@ -97,37 +95,39 @@ func (d *ConsumerDataPlane) startProcessor(ctx context.Context,
 		return nil, err
 	}
 
-	d.eventSubscriber.CloseConnection(flow.ID) // Close any existing connection
+	// publisher close and reopen
+	d.publisherService.Terminate(channel)
+	d.publisherService.Start(flow.ID, endpoint, channel, token)
 
-	err = d.eventSubscriber.Subscribe(channel, endpoint, channel, token)
-	if err != nil {
-		return nil, err
-	}
-	log.Printf("[Consumer Data Plane] Started NATS subscriber for participant %s dataset %s\n", flow.ParticipantID, flow.DatasetID)
+	log.Printf("[Provider Data Plane] Started NATS subscriber for participant %s dataset %s\n", flow.ParticipantID, flow.DatasetID)
 	return &dsdk.DataFlowResponseMessage{State: dsdk.Started}, nil
 }
 
-func (d *ConsumerDataPlane) terminateProcessor(_ context.Context, flow *dsdk.DataFlow) error {
+func (d *ProviderDataPlane) terminateProcessor(_ context.Context, flow *dsdk.DataFlow) error {
 	err := flow.TransitionToTerminated()
 	if err != nil {
 		return err
 	}
-	d.eventSubscriber.CloseConnection(flow.ID)
-	log.Printf("[Consumer Data Plane] Terminated transfer for %s\n", flow.CounterPartyID)
+
+	d.publisherService.Terminate(flow.ID)
+
+	log.Printf("[Provider Data Plane] Terminated transfer for %s\n", flow.CounterPartyID)
 	return nil
 }
 
-func (d *ConsumerDataPlane) suspendProcessor(_ context.Context, flow *dsdk.DataFlow) error {
+func (d *ProviderDataPlane) suspendProcessor(_ context.Context, flow *dsdk.DataFlow) error {
 	err := flow.TransitionToSuspended()
 	if err != nil {
 		return err
 	}
-	d.eventSubscriber.CloseConnection(flow.ID)
-	log.Printf("[Consumer Data Plane] Suspended transfer for %s\n", flow.CounterPartyID)
+
+	d.publisherService.Terminate(flow.ID)
+
+	log.Printf("[Provider Data Plane] Suspended transfer for %s\n", flow.CounterPartyID)
 	return nil
 }
 
-func (d *ConsumerDataPlane) noopHandler(context.Context, *dsdk.DataFlow) error {
+func (d *ProviderDataPlane) noopHandler(context.Context, *dsdk.DataFlow) error {
 	return nil
 }
 

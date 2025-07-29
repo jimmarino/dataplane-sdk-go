@@ -10,7 +10,7 @@
 //       Metaform Systems, Inc. - initial API and implementation
 //
 
-package consumer
+package natsservices
 
 import (
 	"github.com/metaform/dataplane-sdk-go/examples/common"
@@ -18,8 +18,7 @@ import (
 	"log"
 )
 
-// EventSubscriber mocks a service that subscribes to event streams published by the provider. Event streams are managed by
-// the provider data plane.
+// EventSubscriber mocks a service that subscribes to event streams published by the provider.
 type EventSubscriber struct {
 	connectionStore *common.Store[*nats.Conn]
 }

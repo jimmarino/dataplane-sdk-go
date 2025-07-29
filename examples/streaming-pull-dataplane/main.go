@@ -9,10 +9,6 @@ import (
 	"time"
 )
 
-const (
-	natsUrl = "localhost:4222"
-)
-
 func main() {
 
 	launcher.LaunchServices()

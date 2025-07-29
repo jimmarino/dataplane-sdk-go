@@ -16,7 +16,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/metaform/dataplane-sdk-go/examples/common"
-	"github.com/metaform/dataplane-sdk-go/examples/natsservices"
 	"github.com/nats-io/nats.go"
 	"log"
 	"time"
@@ -25,31 +24,36 @@ import (
 // EventPublisherService mocks a service that publishes event streams intended for clients. Event streams are managed by
 // the provider data plane.
 type EventPublisherService struct {
-	publisherStore *common.Store[*context.CancelFunc]
+	publisherStore *common.Store[*storeEntry]
 }
 
 func NewEventPublisherService() *EventPublisherService {
-	return &EventPublisherService{publisherStore: common.NewStore[*context.CancelFunc]()}
+	return &EventPublisherService{publisherStore: common.NewStore[*storeEntry]()}
 }
 
-func (m *EventPublisherService) Start(channel string) {
+func (m *EventPublisherService) Start(id string, endpoint string, channel string, token string) {
 	ctx, cancellation := context.WithCancel(context.Background())
-	m.publisherStore.Create(channel, &cancellation)
+	m.publisherStore.Create(id, &storeEntry{id: id, channel: channel, endpoint: endpoint, token: token, cancellation: &cancellation})
 	go m.startInternal(ctx, channel)
 }
 
-func (m *EventPublisherService) Terminate(channel string) {
-	cancellation, found := m.publisherStore.Find(channel)
+func (m *EventPublisherService) Terminate(id string) {
+	cancellation, found := m.publisherStore.Find(id)
 	if !found {
 		return
 	}
-	m.publisherStore.Delete(channel)
-	(*cancellation)()
+	m.publisherStore.Delete(id)
+	(*cancellation.cancellation)()
 }
 
-func (m *EventPublisherService) startInternal(ctx context.Context, channel string) {
+func (m *EventPublisherService) startInternal(ctx context.Context, id string) {
 	defer ctx.Done()
-	nc, err := connect()
+	entry, found := m.publisherStore.Find(id)
+	if !found {
+		log.Printf("[Event Publisher] Failed to find publisher entry for ID %s", id)
+		return
+	}
+	nc, err := connect(entry)
 	if err != nil {
 		log.Printf("[Event Publisher] Failed to connect to NATS: %v", err)
 		return
@@ -67,7 +71,7 @@ func (m *EventPublisherService) startInternal(ctx context.Context, channel strin
 			return
 		case <-ticker.C:
 			log.Printf("Sending event: %d\n", i)
-			err := nc.Publish(channel, []byte(fmt.Sprintf(`{"data": "Event %d"}`, i)))
+			err := nc.Publish(entry.channel, []byte(fmt.Sprintf(`{"data": "Event %d"}`, i)))
 			if err != nil {
 				log.Printf("[Event Publisher] Failed to publish event: %v", err)
 				return
@@ -77,14 +81,21 @@ func (m *EventPublisherService) startInternal(ctx context.Context, channel strin
 	}
 }
 
-func connect() (*nats.Conn, error) {
-	nc, err := nats.Connect(natsservices.NatsUrl,
-		nats.UserInfo("provider", "provider"),
+func connect(entry *storeEntry) (*nats.Conn, error) {
+	nc, err := nats.Connect(entry.endpoint,
+		nats.Token(entry.token),
 	)
-
 	if err != nil {
 		return nil, err
 	}
 	log.Println("Provider client connected to provider NATS")
 	return nc, nil
+}
+
+type storeEntry struct {
+	id           string
+	channel      string
+	endpoint     string
+	token        string
+	cancellation *context.CancelFunc
 }

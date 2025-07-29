@@ -12,6 +12,32 @@
 
 package main
 
+import (
+	"context"
+	"github.com/google/uuid"
+	"github.com/metaform/dataplane-sdk-go/examples/controlplane"
+	"github.com/metaform/dataplane-sdk-go/examples/streaming-push-data-plane/launcher"
+	"log"
+)
+
 func main() {
+	launcher.LaunchServices()
+
+	cp, err := controlplane.NewSimulator()
+	if err != nil {
+		log.Fatalf("Unable to launch control plane simulator: %v\n", err)
+	}
+
+	ctx := context.Background()
+	defer ctx.Done()
+
+	agreementID := uuid.NewString()
+	datasetID := uuid.NewString()
+
+	consumerProcessID := uuid.NewString()
+	err = cp.ConsumerPrepare(ctx, consumerProcessID, agreementID, datasetID)
+	if err != nil {
+		log.Fatalf("Unable to send prepare to consumer control plane: %v\n", err)
+	}
 
 }

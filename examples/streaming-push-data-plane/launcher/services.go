@@ -14,8 +14,8 @@ package launcher
 
 import (
 	"github.com/metaform/dataplane-sdk-go/examples/natsservices"
-	"github.com/metaform/dataplane-sdk-go/examples/streaming-pull-dataplane/consumer"
-	"github.com/metaform/dataplane-sdk-go/examples/streaming-pull-dataplane/provider"
+	"github.com/metaform/dataplane-sdk-go/examples/streaming-push-data-plane/consumer"
+	"github.com/metaform/dataplane-sdk-go/examples/streaming-push-data-plane/provider"
 	"log"
 )
 
@@ -26,19 +26,20 @@ func LaunchServices() (*provider.ProviderDataPlane, *consumer.ConsumerDataPlane)
 		log.Fatalf("Failed to initialize NATS Server: %v\n", err)
 	}
 
-	as := natsservices.NewAuthService()
-	err = as.Init()
-	if err != nil {
-		log.Fatalf("Failed to initialize Auth Service: %v\n", err)
-	}
-	providerDataplane, err := provider.NewDataPlane(as, ns, provider.NewEventPublisherService())
+	providerDataplane, err := provider.NewDataPlane(provider.NewEventPublisherService())
 	if err != nil {
 		log.Fatalf("Failed to launch Provider Data Plane: %v\n", err)
 	}
 	providerDataplane.Init()
 
+	as := natsservices.NewAuthService()
+	err = as.Init()
+	if err != nil {
+		log.Fatalf("Failed to initialize Auth Service: %v\n", err)
+	}
+
 	subscriber := natsservices.NewEventSubscriber()
-	consumerDataplane, err := consumer.NewDataPlane(subscriber)
+	consumerDataplane, err := consumer.NewDataPlane(as, ns, natsservices.NatsUrl, subscriber)
 	if err != nil {
 		log.Fatalf("Failed to launch Consumer Data Plane: %v\n", err)
 	}

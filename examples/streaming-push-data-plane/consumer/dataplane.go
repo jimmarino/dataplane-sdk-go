@@ -10,7 +10,7 @@
 //       Metaform Systems, Inc. - initial API and implementation
 //
 
-package provider
+package consumer
 
 import (
 	"context"
@@ -24,19 +24,25 @@ import (
 	"net/http"
 )
 
-// ProviderDataPlane demonstrates how to use the Data Plane SDK. This implementation supports pull event streaming.
-type ProviderDataPlane struct {
+// ConsumerDataPlane demonstrates how to use the Data Plane SDK. This implementation supports push event streaming.
+type ConsumerDataPlane struct {
 	api                   *dsdk.DataPlaneApi
 	signallingServer      *http.Server
 	authService           *natsservices.AuthService
 	connectionInvalidator ConnectionInvalidator
-	publisherService      *EventPublisherService
+	eventSubscriber       *natsservices.EventSubscriber
+	natsUrl               string
 }
 
 func NewDataPlane(authService *natsservices.AuthService,
 	invalidator ConnectionInvalidator,
-	publisherService *EventPublisherService) (*ProviderDataPlane, error) {
-	providerDataPlane := &ProviderDataPlane{authService: authService, connectionInvalidator: invalidator, publisherService: publisherService}
+	natsUrl string,
+	eventSubscriber *natsservices.EventSubscriber) (*ConsumerDataPlane, error) {
+
+	providerDataPlane := &ConsumerDataPlane{authService: authService,
+		connectionInvalidator: invalidator,
+		natsUrl:               natsUrl,
+		eventSubscriber:       eventSubscriber}
 
 	builder := dsdk.NewDataPlaneSDKBuilder()
 	store := memory.NewInMemoryStore()
@@ -58,35 +64,28 @@ func NewDataPlane(authService *natsservices.AuthService,
 	return providerDataPlane, nil
 }
 
-func (d *ProviderDataPlane) Init() {
-	d.signallingServer = common.NewSignallingServer(d.api, common.ProviderSignallingPort)
+func (d *ConsumerDataPlane) Init() {
+	d.signallingServer = common.NewSignallingServer(d.api, common.ConsumerSignallingPort)
 
 	// Start signaling server
 	go func() {
-		log.Printf("[Provider Data Plane] Signalling server listening on port %d\n", common.ProviderSignallingPort)
+		log.Printf("[Consumer Data Plane] Signalling server listening on port %d\n", common.ConsumerSignallingPort)
 		if err := d.signallingServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("Provider signaling server failed to start: %v", err)
+			log.Fatalf("Consumer signaling server failed to start: %v", err)
 		}
 	}()
 }
 
-func (d *ProviderDataPlane) Shutdown(ctx context.Context) {
+func (d *ConsumerDataPlane) Shutdown(ctx context.Context) {
 	if d.signallingServer != nil {
 		if err := d.signallingServer.Shutdown(ctx); err != nil {
-			log.Printf("Provider signalling server shutdown error: %v", err)
+			log.Printf("Consumer signalling server shutdown error: %v", err)
 		}
 	}
-	log.Println("Provider data plane shutdown")
+	log.Println("Consumer data plane shutdown")
 }
 
-func (d *ProviderDataPlane) prepareProcessor(_ context.Context,
-	_ *dsdk.DataFlow,
-	_ *dsdk.DataPlaneSDK,
-	_ *dsdk.ProcessorOptions) (*dsdk.DataFlowResponseMessage, error) {
-	return nil, errors.New("not supported on provider")
-}
-
-func (d *ProviderDataPlane) startProcessor(_ context.Context,
+func (d *ConsumerDataPlane) prepareProcessor(_ context.Context,
 	flow *dsdk.DataFlow,
 	_ *dsdk.DataPlaneSDK,
 	options *dsdk.ProcessorOptions) (*dsdk.DataFlowResponseMessage, error) {
@@ -94,16 +93,18 @@ func (d *ProviderDataPlane) startProcessor(_ context.Context,
 		// Perform de-duplication. This code path is not needed, but it demonstrates how de-deduplication can be handled
 	}
 
-	err := flow.TransitionToStarting()
-	if err != nil {
-		return nil, err
-	}
 	token, err := d.authService.CreateToken(flow.ID)
 	if err != nil {
 		return nil, err
 	}
 
 	channel := flow.ID + "." + natsservices.ForwardSuffix
+
+	err = d.eventSubscriber.Subscribe(channel, d.natsUrl, channel, token)
+	if err != nil {
+		return nil, err
+	}
+
 	replyChannel := flow.ID + "." + natsservices.ReplySuffix
 	da, err := dsdk.NewDataAddressBuilder().
 		Property(dsdk.EndpointType, natsservices.NATSEndpointType).
@@ -115,41 +116,45 @@ func (d *ProviderDataPlane) startProcessor(_ context.Context,
 	if err != nil {
 		return nil, fmt.Errorf("failed to build data address: %w", err)
 	}
-	err = flow.TransitionToStarted()
+	err = flow.TransitionToPrepared()
 	if err != nil {
 		return nil, err
 	}
 
-	// Start publishing events. In a real system, this could be done via a queue or notification mechanism
-	d.publisherService.Start(channel)
-
-	log.Printf("[Provider Data Plane] Starting transfer for %s\n", flow.CounterPartyID)
+	log.Printf("[Consumer Data Plane] Prepare transfer for %s\n", flow.CounterPartyID)
 	return &dsdk.DataFlowResponseMessage{State: flow.State, DataAddress: *da}, nil
 }
 
-func (d *ProviderDataPlane) suspendProcessor(_ context.Context, flow *dsdk.DataFlow) error {
+func (d *ConsumerDataPlane) startProcessor(_ context.Context,
+	flow *dsdk.DataFlow,
+	_ *dsdk.DataPlaneSDK,
+	options *dsdk.ProcessorOptions) (*dsdk.DataFlowResponseMessage, error) {
+	err := flow.TransitionToStarted()
+	if err != nil {
+		return nil, err
+	}
+	return &dsdk.DataFlowResponseMessage{State: flow.State, DataAddress: options.SourceDataAddress}, nil
+}
+
+func (d *ConsumerDataPlane) suspendProcessor(_ context.Context, flow *dsdk.DataFlow) error {
 	err := flow.TransitionToSuspended()
-	channel := flow.ID + "." + natsservices.ForwardSuffix
-	d.publisherService.Terminate(channel)
 	if err != nil {
 		return err
 	}
-	log.Printf("[Provider Data Plane] Suspending transfer for %s\n", flow.CounterPartyID)
+	log.Printf("[Consumer Data Plane] Suspending transfer for %s\n", flow.CounterPartyID)
 	return d.invalidate(flow)
 }
 
-func (d *ProviderDataPlane) terminateProcessor(_ context.Context, flow *dsdk.DataFlow) error {
+func (d *ConsumerDataPlane) terminateProcessor(_ context.Context, flow *dsdk.DataFlow) error {
 	err := flow.TransitionToTerminated()
-	channel := flow.ID + "." + natsservices.ForwardSuffix
-	d.publisherService.Terminate(channel)
 	if err != nil {
 		return err
 	}
-	log.Printf("[Provider Data Plane] Terminating transfer for %s\n", flow.CounterPartyID)
+	log.Printf("[Consumer Data Plane] Terminating transfer for %s\n", flow.CounterPartyID)
 	return d.invalidate(flow)
 }
 
-func (d *ProviderDataPlane) invalidate(flow *dsdk.DataFlow) error {
+func (d *ConsumerDataPlane) invalidate(flow *dsdk.DataFlow) error {
 	// Connection terminated after to avoid case where a client reconnects before the token is invalidated
 	defer d.connectionInvalidator.InvalidateConnection(flow.ID)
 	err := d.authService.InvalidateToken(flow.ID)
@@ -159,10 +164,10 @@ func (d *ProviderDataPlane) invalidate(flow *dsdk.DataFlow) error {
 	return nil
 }
 
-func (d *ProviderDataPlane) noopHandler(context.Context, *dsdk.DataFlow) error {
-	return nil
-}
-
 type ConnectionInvalidator interface {
 	InvalidateConnection(processID string)
+}
+
+func (d *ConsumerDataPlane) noopHandler(context.Context, *dsdk.DataFlow) error {
+	return nil
 }

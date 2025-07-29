@@ -10,7 +10,7 @@
 //       Metaform Systems, Inc. - initial API and implementation
 //
 
-package config
+package natsservices
 
 const (
 	NATSEndpointType = "https://test.org/natsdp/v1/nats"

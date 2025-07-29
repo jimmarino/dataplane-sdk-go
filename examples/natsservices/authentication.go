@@ -10,13 +10,12 @@
 //       Metaform Systems, Inc. - initial API and implementation
 //
 
-package nats
+package natsservices
 
 import (
 	"errors"
 	"fmt"
 	"github.com/metaform/dataplane-sdk-go/examples/common"
-	"github.com/metaform/dataplane-sdk-go/examples/streaming-pull-dataplane/config"
 	"github.com/nats-io/jwt/v2"
 	"github.com/nats-io/nats-server/v2/logger"
 	"github.com/nats-io/nats.go"
@@ -102,8 +101,8 @@ func (ns *AuthService) CreateToken(processID string) (string, error) {
 	userClaims.Name = processID
 
 	// Restrict permissions to publish only to the forward and response subjects
-	userClaims.Permissions.Sub.Allow.Add(processID + config.ForwardSuffix)
-	userClaims.Permissions.Sub.Allow.Add(processID + config.ReplySuffix)
+	userClaims.Permissions.Sub.Allow.Add(processID + ForwardSuffix)
+	userClaims.Permissions.Sub.Allow.Add(processID + ReplySuffix)
 
 	userJWT, _ := userClaims.Encode(ns.accountKeys)
 	ns.tokenStore.Create(processID, storeEntry{processID, userJWT})
