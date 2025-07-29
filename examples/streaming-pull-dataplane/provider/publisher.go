@@ -66,7 +66,7 @@ func (m *EventPublisherService) startInternal(ctx context.Context, channel strin
 			log.Printf("[Event Publisher] Event publishing cancelled: %v", ctx.Err())
 			return
 		case <-ticker.C:
-			log.Printf("Sending event: %d\n", i)
+			log.Printf("[Event Publisher] Sending event: %d\n", i)
 			err := nc.Publish(channel, []byte(fmt.Sprintf(`{"data": "Event %d"}`, i)))
 			if err != nil {
 				log.Printf("[Event Publisher] Failed to publish event: %v", err)
@@ -85,6 +85,6 @@ func connect() (*nats.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Println("Provider client connected to provider NATS")
+	log.Println("[Event Publisher] connected to provider NATS")
 	return nc, nil
 }

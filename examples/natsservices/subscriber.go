@@ -40,7 +40,7 @@ func (d *EventSubscriber) Subscribe(ID string, endpoint string, channel string, 
 	}
 	d.connectionStore.Create(ID, nc)
 	_, err = nc.Subscribe(channel, func(msg *nats.Msg) { // FIXME close sub and ID
-		log.Println("Received event: " + string(msg.Data))
+		log.Println("[Event Subscriber] Received event: " + string(msg.Data))
 	})
 	if err != nil {
 		return err
