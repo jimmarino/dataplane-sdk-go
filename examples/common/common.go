@@ -70,7 +70,7 @@ func ParseDataset(w http.ResponseWriter, r *http.Request) (string, error) {
 
 // ParseToken extracts and returns the Bearer token from the Authorization header in the HTTP request.
 // Returns an error if the header is missing, invalid, or the token is empty.
-func ParseToken(w http.ResponseWriter, r *http.Request) (string, error) {
+func ParseToken(_ http.ResponseWriter, r *http.Request) (string, error) {
 	authHeader := r.Header.Get("Authorization")
 	if authHeader == "" {
 		return "", errors.New("authorization header is empty")
