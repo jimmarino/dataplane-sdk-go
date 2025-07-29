@@ -77,7 +77,7 @@ func (d *ConsumerDataPlane) prepareProcessor(_ context.Context,
 	return &dsdk.DataFlowResponseMessage{State: dsdk.Prepared}, nil
 }
 
-func (d *ConsumerDataPlane) startProcessor(ctx context.Context,
+func (d *ConsumerDataPlane) startProcessor(_ context.Context,
 	flow *dsdk.DataFlow,
 	_ *dsdk.DataPlaneSDK,
 	options *dsdk.ProcessorOptions) (*dsdk.DataFlowResponseMessage, error) {
