@@ -29,7 +29,7 @@ const (
 )
 
 // ConsumerDataPlane is a consumer data plane that demonstrates how to use the Data Plane SDK. This implementation supports
-// the transfer of simple JSON datasets over HTTP and Data Plane Signalling start and prepare handling using synchronous responses.
+// the transfer of simple JSON datasets over HTTP and Data Plane Signaling start and prepare handling using synchronous responses.
 // After a transfer is started, clients obtain the access token from this data plane and issue the request to the provider data plane.
 //
 // Note that this data plane does not proxy requests to the provider data plane. This is recommended best practice as it avoids
@@ -38,10 +38,10 @@ const (
 // This data plane implements non-finite data transfers. Multiple requests may be issued to the provider data plane over a
 // period of time. For example, the dataset could be access to an API.
 type ConsumerDataPlane struct {
-	api              *dsdk.DataPlaneApi
-	signallingServer *http.Server
-	dataServer       *http.Server
-	tokenStore       *common.Store[tokenEntry]
+	api             *dsdk.DataPlaneApi
+	signalingServer *http.Server
+	dataServer      *http.Server
+	tokenStore      *common.Store[tokenEntry]
 }
 
 func NewDataPlane() (*ConsumerDataPlane, error) {
@@ -63,11 +63,11 @@ func NewDataPlane() (*ConsumerDataPlane, error) {
 }
 
 func (d *ConsumerDataPlane) Init() {
-	d.signallingServer = common.NewSignallingServer(d.api, common.ConsumerSignallingPort)
+	d.signalingServer = common.NewSignalingServer(d.api, common.ConsumerSignalingPort)
 	// Start signaling server
 	go func() {
-		log.Printf("[Consumer Data Plane] Signalling server listening on port %d\n", common.ConsumerSignallingPort)
-		if err := d.signallingServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		log.Printf("[Consumer Data Plane] Signaling server listening on port %d\n", common.ConsumerSignalingPort)
+		if err := d.signalingServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("Consumer signaling server failed to start: %v", err)
 		}
 	}()
@@ -82,9 +82,9 @@ func (d *ConsumerDataPlane) Init() {
 }
 
 func (d *ConsumerDataPlane) Shutdown(ctx context.Context) {
-	if d.signallingServer != nil {
-		if err := d.signallingServer.Shutdown(ctx); err != nil {
-			log.Printf("Consumer signalling server shutdown error: %v", err)
+	if d.signalingServer != nil {
+		if err := d.signalingServer.Shutdown(ctx); err != nil {
+			log.Printf("Consumer signaling server shutdown error: %v", err)
 		}
 	}
 	log.Println("Consumer data plane shutdown")

@@ -25,7 +25,7 @@ import (
 
 type ProviderDataPlane struct {
 	api              *dsdk.DataPlaneApi
-	signallingServer *http.Server
+	signalingServer  *http.Server
 	dataServer       *http.Server
 	publisherService *EventPublisherService
 }
@@ -49,20 +49,20 @@ func NewDataPlane(publisherService *EventPublisherService) (*ProviderDataPlane, 
 }
 
 func (d *ProviderDataPlane) Init() {
-	d.signallingServer = common.NewSignallingServer(d.api, common.ProviderSignallingPort)
+	d.signalingServer = common.NewSignalingServer(d.api, common.ProviderSignalingPort)
 	// Start signaling server
 	go func() {
-		log.Printf("[Provider Data Plane] Signalling server listening on port %d\n", common.ProviderSignallingPort)
-		if err := d.signallingServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		log.Printf("[Provider Data Plane] Signaling server listening on port %d\n", common.ProviderSignalingPort)
+		if err := d.signalingServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("Provider signaling server failed to start: %v", err)
 		}
 	}()
 }
 
 func (d *ProviderDataPlane) Shutdown(ctx context.Context) {
-	if d.signallingServer != nil {
-		if err := d.signallingServer.Shutdown(ctx); err != nil {
-			log.Printf("Provider signalling server shutdown error: %v", err)
+	if d.signalingServer != nil {
+		if err := d.signalingServer.Shutdown(ctx); err != nil {
+			log.Printf("Provider signaling server shutdown error: %v", err)
 		}
 	}
 	log.Println("Provider data plane shutdown")

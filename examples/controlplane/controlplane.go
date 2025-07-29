@@ -73,8 +73,8 @@ func (c *ControlPlaneSimulator) ProviderStart(ctx context.Context,
 	}
 
 	// Create the request
-	providerSignallingUrl := fmt.Sprintf(startUrl, common.ProviderSignallingPort)
-	req, err := http.NewRequestWithContext(ctx, "POST", providerSignallingUrl, bytes.NewBuffer(serialized))
+	providerSignalingUrl := fmt.Sprintf(startUrl, common.ProviderSignalingPort)
+	req, err := http.NewRequestWithContext(ctx, "POST", providerSignalingUrl, bytes.NewBuffer(serialized))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -125,8 +125,8 @@ func (c *ControlPlaneSimulator) ConsumerStart(ctx context.Context, processID str
 	}
 
 	// Create the request
-	consumerSignallingUrl := fmt.Sprintf(startUrl, common.ConsumerSignallingPort)
-	req, err := http.NewRequestWithContext(ctx, "POST", consumerSignallingUrl, bytes.NewBuffer(serialized))
+	consumerSignalingUrl := fmt.Sprintf(startUrl, common.ConsumerSignalingPort)
+	req, err := http.NewRequestWithContext(ctx, "POST", consumerSignalingUrl, bytes.NewBuffer(serialized))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
@@ -177,8 +177,8 @@ func (c *ControlPlaneSimulator) ConsumerPrepare(ctx context.Context, processID s
 	}
 
 	// Create the request
-	consumerSignallingUrl := fmt.Sprintf(consumerPrepareURL, common.ConsumerSignallingPort)
-	req, err := http.NewRequestWithContext(ctx, "POST", consumerSignallingUrl, bytes.NewBuffer(serialized))
+	consumerSignalingUrl := fmt.Sprintf(consumerPrepareURL, common.ConsumerSignalingPort)
+	req, err := http.NewRequestWithContext(ctx, "POST", consumerSignalingUrl, bytes.NewBuffer(serialized))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -216,8 +216,8 @@ func (c *ControlPlaneSimulator) ProviderTerminate(ctx context.Context, processID
 	}
 
 	// Create the request
-	providerSignallingUrl := fmt.Sprintf(terminateUrl, common.ProviderSignallingPort, processID)
-	req, err := http.NewRequestWithContext(ctx, "POST", providerSignallingUrl, bytes.NewBuffer(serialized))
+	providerSignalingUrl := fmt.Sprintf(terminateUrl, common.ProviderSignalingPort, processID)
+	req, err := http.NewRequestWithContext(ctx, "POST", providerSignalingUrl, bytes.NewBuffer(serialized))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}

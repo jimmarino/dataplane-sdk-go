@@ -21,10 +21,10 @@ import (
 )
 
 const (
-	ProviderSignallingPort = 8080
-	ProviderDataPort       = 8181
-	ConsumerSignallingPort = 9090
-	ConsumerDataPort       = 9191
+	ProviderSignalingPort = 8080
+	ProviderDataPort      = 8181
+	ConsumerSignalingPort = 9090
+	ConsumerDataPort      = 9191
 
 	bearerPrefix = "Bearer "
 )
@@ -34,8 +34,8 @@ type TokenResponse struct {
 	Endpoint string `json:"url"`
 }
 
-// NewSignallingServer creates and returns a new HTTP server configured with dataplane signalling endpoints.
-func NewSignallingServer(sdkApi *dsdk.DataPlaneApi, port int) *http.Server {
+// NewSignalingServer creates and returns a new HTTP server configured with dataplane signaling endpoints.
+func NewSignalingServer(sdkApi *dsdk.DataPlaneApi, port int) *http.Server {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/start", sdkApi.Start)
 	mux.HandleFunc("/prepare", sdkApi.Prepare)

@@ -32,12 +32,12 @@ const (
 )
 
 // ProviderDataPlane is a provider data plane that demonstrates how to use the Data Plane SDK. This implementation supports
-// the transfer of simple JSON datasets over HTTP and Data Plane Signalling start and prepare handling using synchronous responses.
+// the transfer of simple JSON datasets over HTTP and Data Plane Signaling start and prepare handling using synchronous responses.
 type ProviderDataPlane struct {
-	api              *dsdk.DataPlaneApi
-	tokenStore       *common.Store[tokenEntry]
-	signallingServer *http.Server
-	dataServer       *http.Server
+	api             *dsdk.DataPlaneApi
+	tokenStore      *common.Store[tokenEntry]
+	signalingServer *http.Server
+	dataServer      *http.Server
 }
 
 func NewDataPlane() (*ProviderDataPlane, error) {
@@ -66,13 +66,13 @@ func NewDataPlane() (*ProviderDataPlane, error) {
 }
 
 func (d *ProviderDataPlane) Init() {
-	d.signallingServer = common.NewSignallingServer(d.api, common.ProviderSignallingPort)
+	d.signalingServer = common.NewSignalingServer(d.api, common.ProviderSignalingPort)
 	d.dataServer = common.NewDataServer(common.ProviderDataPort, "/datasets/", d.transferDataset)
 
 	// Start signaling server
 	go func() {
-		log.Printf("[Provider Data Plane] Signalling server listening on port %d\n", common.ProviderSignallingPort)
-		if err := d.signallingServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		log.Printf("[Provider Data Plane] Signaling server listening on port %d\n", common.ProviderSignalingPort)
+		if err := d.signalingServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("Provider signaling server failed to start: %v", err)
 		}
 	}()
@@ -87,9 +87,9 @@ func (d *ProviderDataPlane) Init() {
 }
 
 func (d *ProviderDataPlane) Shutdown(ctx context.Context) {
-	if d.signallingServer != nil {
-		if err := d.signallingServer.Shutdown(ctx); err != nil {
-			log.Printf("Provider signalling server shutdown error: %v", err)
+	if d.signalingServer != nil {
+		if err := d.signalingServer.Shutdown(ctx); err != nil {
+			log.Printf("Provider signaling server shutdown error: %v", err)
 		}
 	}
 	if d.dataServer != nil {

@@ -27,7 +27,7 @@ import (
 // ConsumerDataPlane demonstrates how to use the Data Plane SDK. This implementation supports push event streaming.
 type ConsumerDataPlane struct {
 	api                   *dsdk.DataPlaneApi
-	signallingServer      *http.Server
+	signalingServer       *http.Server
 	authService           *natsservices.AuthService
 	connectionInvalidator ConnectionInvalidator
 	eventSubscriber       *natsservices.EventSubscriber
@@ -65,21 +65,21 @@ func NewDataPlane(authService *natsservices.AuthService,
 }
 
 func (d *ConsumerDataPlane) Init() {
-	d.signallingServer = common.NewSignallingServer(d.api, common.ConsumerSignallingPort)
+	d.signalingServer = common.NewSignalingServer(d.api, common.ConsumerSignalingPort)
 
 	// Start signaling server
 	go func() {
-		log.Printf("[Consumer Data Plane] Signalling server listening on port %d\n", common.ConsumerSignallingPort)
-		if err := d.signallingServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		log.Printf("[Consumer Data Plane] Signaling server listening on port %d\n", common.ConsumerSignalingPort)
+		if err := d.signalingServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("Consumer signaling server failed to start: %v", err)
 		}
 	}()
 }
 
 func (d *ConsumerDataPlane) Shutdown(ctx context.Context) {
-	if d.signallingServer != nil {
-		if err := d.signallingServer.Shutdown(ctx); err != nil {
-			log.Printf("Consumer signalling server shutdown error: %v", err)
+	if d.signalingServer != nil {
+		if err := d.signalingServer.Shutdown(ctx); err != nil {
+			log.Printf("Consumer signaling server shutdown error: %v", err)
 		}
 	}
 	log.Println("Consumer data plane shutdown")

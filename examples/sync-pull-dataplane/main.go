@@ -22,7 +22,7 @@ import (
 	"sync"
 )
 
-// Demonstrates initiating a data transfer using a provider data plane that implements synchronous signalling start operations.
+// Demonstrates initiating a data transfer using a provider data plane that implements synchronous signaling start operations.
 func main() {
 
 	var wg sync.WaitGroup
