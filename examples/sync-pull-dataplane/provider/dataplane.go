@@ -136,7 +136,7 @@ func (d *ProviderDataPlane) startProcessor(ctx context.Context, flow *dsdk.DataF
 	}
 
 	log.Printf("[Provider Data Plane] Started transfer for %s and returning access token\n", flow.CounterPartyID)
-	return &dsdk.DataFlowResponseMessage{State: flow.State, DataAddress: *da}, nil
+	return &dsdk.DataFlowResponseMessage{State: flow.State, DataAddress: da}, nil
 }
 
 func (d *ProviderDataPlane) suspendProcessor(ctx context.Context, flow *dsdk.DataFlow) error {
