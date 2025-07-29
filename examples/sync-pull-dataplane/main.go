@@ -43,20 +43,20 @@ func main() {
 	datasetID := uuid.NewString()
 
 	consumerProcessID := uuid.NewString()
-	err = cp.ConsumerPrepare(ctx, consumerProcessID, agreementID, datasetID)
+	_, err = cp.ConsumerPrepare(ctx, consumerProcessID, agreementID, datasetID)
 	if err != nil {
 		log.Fatalf("Unable to send prepate to consumer control plane: %v\n", err)
 	}
 
 	// Signal to the provider data plane
 	providerProcessID := uuid.NewString()
-	da, err := cp.ProviderStart(ctx, providerProcessID, agreementID, datasetID)
+	da, err := cp.ProviderStart(ctx, providerProcessID, agreementID, datasetID, nil)
 	if err != nil {
 		log.Fatalf("Unable to send start to provider control plane: %v\n", err)
 	}
 
 	// Signal to the consumer data plane in response
-	err = cp.ConsumerStart(ctx, consumerProcessID, *da)
+	err = cp.ConsumerStart(ctx, consumerProcessID, da)
 	if err != nil {
 		log.Fatalf("Unable to send start to consumer control plane: %v\n", err)
 	}

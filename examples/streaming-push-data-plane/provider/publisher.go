@@ -33,8 +33,9 @@ func NewEventPublisherService() *EventPublisherService {
 
 func (m *EventPublisherService) Start(id string, endpoint string, channel string, token string) {
 	ctx, cancellation := context.WithCancel(context.Background())
-	m.publisherStore.Create(id, &storeEntry{id: id, channel: channel, endpoint: endpoint, token: token, cancellation: &cancellation})
-	go m.startInternal(ctx, channel)
+	entry := &storeEntry{id: id, channel: channel, endpoint: endpoint, token: token, cancellation: &cancellation}
+	m.publisherStore.Create(id, entry)
+	go m.startInternal(ctx, entry)
 }
 
 func (m *EventPublisherService) Terminate(id string) {
@@ -46,13 +47,7 @@ func (m *EventPublisherService) Terminate(id string) {
 	(*cancellation.cancellation)()
 }
 
-func (m *EventPublisherService) startInternal(ctx context.Context, id string) {
-	defer ctx.Done()
-	entry, found := m.publisherStore.Find(id)
-	if !found {
-		log.Printf("[Event Publisher] Failed to find publisher entry for ID %s", id)
-		return
-	}
+func (m *EventPublisherService) startInternal(ctx context.Context, entry *storeEntry) {
 	nc, err := connect(entry)
 	if err != nil {
 		log.Printf("[Event Publisher] Failed to connect to NATS: %v", err)

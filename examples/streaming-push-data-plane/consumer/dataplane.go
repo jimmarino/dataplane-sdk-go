@@ -122,7 +122,7 @@ func (d *ConsumerDataPlane) prepareProcessor(_ context.Context,
 	}
 
 	log.Printf("[Consumer Data Plane] Prepare transfer for %s\n", flow.CounterPartyID)
-	return &dsdk.DataFlowResponseMessage{State: flow.State, DataAddress: *da}, nil
+	return &dsdk.DataFlowResponseMessage{State: flow.State, DataAddress: da}, nil
 }
 
 func (d *ConsumerDataPlane) startProcessor(_ context.Context,

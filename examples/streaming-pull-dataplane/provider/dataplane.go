@@ -124,7 +124,7 @@ func (d *ProviderDataPlane) startProcessor(_ context.Context,
 	d.publisherService.Start(channel)
 
 	log.Printf("[Provider Data Plane] Starting transfer for %s\n", flow.CounterPartyID)
-	return &dsdk.DataFlowResponseMessage{State: flow.State, DataAddress: *da}, nil
+	return &dsdk.DataFlowResponseMessage{State: flow.State, DataAddress: da}, nil
 }
 
 func (d *ProviderDataPlane) suspendProcessor(_ context.Context, flow *dsdk.DataFlow) error {

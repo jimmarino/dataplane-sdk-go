@@ -13,7 +13,7 @@ type DataFlowProcessor func(context context.Context, flow *DataFlow, sdk *DataPl
 
 type ProcessorOptions struct {
 	Duplicate         bool
-	SourceDataAddress DataAddress
+	SourceDataAddress *DataAddress
 }
 
 type DataFlowHandler func(context.Context, *DataFlow) error
@@ -165,7 +165,7 @@ func (dsdk *DataPlaneSDK) Start(ctx context.Context, message DataFlowStartMessag
 			if err != nil {
 				return fmt.Errorf("creating data flow: %w", err)
 			}
-			response, err = dsdk.onStart(ctx, flow, dsdk, &ProcessorOptions{})
+			response, err = dsdk.onStart(ctx, flow, dsdk, &ProcessorOptions{SourceDataAddress: message.SourceDataAddress})
 			if err != nil {
 				return fmt.Errorf("processing data flow: %w", err)
 			}

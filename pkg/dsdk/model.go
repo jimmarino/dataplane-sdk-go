@@ -95,7 +95,7 @@ type DataFlowBaseMessage struct {
 
 type DataFlowStartMessage struct {
 	DataFlowBaseMessage
-	SourceDataAddress DataAddress `json:"sourceDataAddress"`
+	SourceDataAddress *DataAddress `json:"sourceDataAddress,omitempty"`
 }
 
 type DataFlowPrepareMessage struct {
@@ -107,7 +107,7 @@ type DataFlowTransitionMessage struct {
 }
 type DataFlowResponseMessage struct {
 	DataplaneId string        `json:"dataplaneId"`
-	DataAddress DataAddress   `json:"dataAddress"`
+	DataAddress *DataAddress  `json:"dataAddress,omitempty"`
 	State       DataFlowState `json:"state"`
 	Error       string        `json:"error"`
 }

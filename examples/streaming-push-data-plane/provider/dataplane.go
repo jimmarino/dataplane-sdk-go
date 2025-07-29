@@ -81,11 +81,11 @@ func (d *ProviderDataPlane) startProcessor(ctx context.Context,
 	options *dsdk.ProcessorOptions) (*dsdk.DataFlowResponseMessage, error) {
 
 	endpoint := options.SourceDataAddress.Properties[dsdk.EndpointKey].(string)
-	token, found := parseToken(natsservices.TokenKey, &options.SourceDataAddress)
+	token, found := parseToken(natsservices.TokenKey, options.SourceDataAddress)
 	if !found {
 		return nil, errors.New("token not found in endpoint properties")
 	}
-	channel, found := parseToken(natsservices.ChannelKey, &options.SourceDataAddress)
+	channel, found := parseToken(natsservices.ChannelKey, options.SourceDataAddress)
 	if !found {
 		return nil, errors.New("channel not found in endpoint properties")
 	}

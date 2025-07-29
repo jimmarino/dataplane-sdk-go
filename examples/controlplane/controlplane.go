@@ -45,7 +45,11 @@ func NewSimulator() (*ControlPlaneSimulator, error) {
 	return &ControlPlaneSimulator{}, nil
 }
 
-func (c *ControlPlaneSimulator) ProviderStart(ctx context.Context, processID string, agreementID string, datasetID string) (*dsdk.DataAddress, error) {
+func (c *ControlPlaneSimulator) ProviderStart(ctx context.Context,
+	processID string,
+	agreementID string,
+	datasetID string,
+	da *dsdk.DataAddress) (*dsdk.DataAddress, error) {
 	callbackURL, _ := url.Parse(providerCallbackURL)
 
 	startMessage := dsdk.DataFlowStartMessage{
@@ -60,6 +64,7 @@ func (c *ControlPlaneSimulator) ProviderStart(ctx context.Context, processID str
 			CallbackAddress:  dsdk.CallbackURL(*callbackURL),
 			TransferType:     dsdk.TransferType{DestinationType: "custom", FlowType: dsdk.Pull},
 		},
+		SourceDataAddress: da,
 	}
 
 	serialized, err := json.Marshal(startMessage)
@@ -95,10 +100,10 @@ func (c *ControlPlaneSimulator) ProviderStart(ctx context.Context, processID str
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	return &message.DataAddress, nil
+	return message.DataAddress, nil
 }
 
-func (c *ControlPlaneSimulator) ConsumerStart(ctx context.Context, processID string, source dsdk.DataAddress) error {
+func (c *ControlPlaneSimulator) ConsumerStart(ctx context.Context, processID string, source *dsdk.DataAddress) error {
 	callbackURL, _ := url.Parse(providerCallbackURL)
 	startMessage := dsdk.DataFlowStartMessage{
 		DataFlowBaseMessage: dsdk.DataFlowBaseMessage{
@@ -150,7 +155,7 @@ func (c *ControlPlaneSimulator) ConsumerStart(ctx context.Context, processID str
 	return nil
 }
 
-func (c *ControlPlaneSimulator) ConsumerPrepare(ctx context.Context, processID string, agreementID string, datasetID string) error {
+func (c *ControlPlaneSimulator) ConsumerPrepare(ctx context.Context, processID string, agreementID string, datasetID string) (*dsdk.DataAddress, error) {
 	callbackURL, _ := url.Parse(providerCallbackURL)
 	prepareMessage := dsdk.DataFlowPrepareMessage{
 		DataFlowBaseMessage: dsdk.DataFlowBaseMessage{
@@ -168,14 +173,14 @@ func (c *ControlPlaneSimulator) ConsumerPrepare(ctx context.Context, processID s
 
 	serialized, err := json.Marshal(prepareMessage)
 	if err != nil {
-		return fmt.Errorf("failed to marshal prepare message: %w", err)
+		return nil, fmt.Errorf("failed to marshal prepare message: %w", err)
 	}
 
 	// Create the request
 	consumerSignallingUrl := fmt.Sprintf(consumerPrepareURL, common.ConsumerSignallingPort)
 	req, err := http.NewRequestWithContext(ctx, "POST", consumerSignallingUrl, bytes.NewBuffer(serialized))
 	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
+		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
 	req.Header.Set(contentType, jsonContentType)
@@ -186,20 +191,20 @@ func (c *ControlPlaneSimulator) ConsumerPrepare(ctx context.Context, processID s
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("prepare request failed: %w", err)
+		return nil, fmt.Errorf("prepare request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
 	var message dsdk.DataFlowResponseMessage
 	if err := json.NewDecoder(resp.Body).Decode(&message); err != nil {
-		return fmt.Errorf("failed to decode response: %w", err)
+		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	return nil
+	return message.DataAddress, nil
 }
 
 func (c *ControlPlaneSimulator) ProviderTerminate(ctx context.Context, processID string, agreementID string, datasetID string) error {
