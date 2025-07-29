@@ -93,7 +93,7 @@ func (d *ConsumerDataPlane) prepareProcessor(_ context.Context,
 		// Perform de-duplication. This code path is not needed, but it demonstrates how de-deduplication can be handled
 	}
 
-	token, err := d.authService.CreateToken(flow.ID)
+	token, err := d.authService.CreateToken(flow.ID, false)
 	if err != nil {
 		return nil, err
 	}

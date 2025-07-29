@@ -98,7 +98,7 @@ func (d *ProviderDataPlane) startProcessor(_ context.Context,
 	if err != nil {
 		return nil, err
 	}
-	token, err := d.authService.CreateToken(flow.ID)
+	token, err := d.authService.CreateToken(flow.ID, true)
 	if err != nil {
 		return nil, err
 	}

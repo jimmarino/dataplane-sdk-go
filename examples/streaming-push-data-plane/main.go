@@ -18,6 +18,7 @@ import (
 	"github.com/metaform/dataplane-sdk-go/examples/controlplane"
 	"github.com/metaform/dataplane-sdk-go/examples/streaming-push-data-plane/launcher"
 	"log"
+	"time"
 )
 
 func main() {
@@ -46,5 +47,13 @@ func main() {
 	if err != nil {
 		log.Fatalf("Unable to send start to provider control plane: %v\n", err)
 	}
+
+	err = cp.ConsumerStart(ctx, consumerProcessID, da)
+	if err != nil {
+		log.Fatalf("Unable to send start to consumer control plane: %v\n", err)
+	}
+
+	// Simulate ongoing processing
+	time.Sleep(10 * time.Second)
 
 }

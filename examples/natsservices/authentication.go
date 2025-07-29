@@ -64,7 +64,9 @@ func (as *AuthService) Init() error {
 		// put the user in the global account
 		uc.Audience = "$G"
 		uc.Name = userClaims.Name // sets to processID
-		uc.Pub.Allow.Add("_INBOX.>")
+		uc.Permissions.Pub.Allow.Add(userClaims.Permissions.Pub.Allow...)
+		uc.Permissions.Sub.Allow.Add(userClaims.Permissions.Sub.Allow...)
+
 		uc.Expires = time.Now().Unix() + 90
 
 		if as.tokenStore.Has(userClaims.Name) {
@@ -93,16 +95,21 @@ func (as *AuthService) Init() error {
 	return nil
 }
 
-func (ns *AuthService) CreateToken(processID string) (string, error) {
+func (ns *AuthService) CreateToken(processID string, pull bool) (string, error) {
 	userKeys, _ := nkeys.CreateUser()
 	userPKey, _ := userKeys.PublicKey()
 
 	userClaims := jwt.NewUserClaims(userPKey)
 	userClaims.Name = processID
+	// Restrict permissions
 
-	// Restrict permissions to publish only to the forward and response subjects
-	userClaims.Permissions.Sub.Allow.Add(processID + ForwardSuffix)
-	userClaims.Permissions.Sub.Allow.Add(processID + ReplySuffix)
+	if pull {
+		userClaims.Permissions.Sub.Allow.Add(processID + "." + ForwardSuffix)
+		userClaims.Permissions.Sub.Allow.Add(processID + "." + ReplySuffix)
+	} else {
+		userClaims.Permissions.Pub.Allow.Add(processID + "." + ForwardSuffix)
+		userClaims.Permissions.Pub.Allow.Add(processID + "." + ReplySuffix)
+	}
 
 	userJWT, _ := userClaims.Encode(ns.accountKeys)
 	ns.tokenStore.Create(processID, storeEntry{processID, userJWT})
