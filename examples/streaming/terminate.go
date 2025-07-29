@@ -34,19 +34,19 @@ func TerminateScenario() {
 	datasetID := uuid.NewString()
 
 	consumerProcessID := uuid.NewString()
-	da, err := cp.ConsumerPrepare(ctx, consumerProcessID, agreementID, datasetID)
+	consumerDA, err := cp.ConsumerPrepare(ctx, consumerProcessID, agreementID, datasetID)
 	if err != nil {
 		log.Fatalf("Unable to send prepare to consumer control plane: %v\n", err)
 	}
 	providerProcessID := uuid.NewString()
 
 	// Signal to the provider data plane
-	sourceDA, err := cp.ProviderStart(ctx, providerProcessID, agreementID, datasetID, da)
+	providerDA, err := cp.ProviderStart(ctx, providerProcessID, agreementID, datasetID, consumerDA)
 	if err != nil {
 		log.Fatalf("Unable to send start to provider control plane: %v\n", err)
 	}
 
-	err = cp.ConsumerStart(ctx, consumerProcessID, sourceDA)
+	err = cp.ConsumerStart(ctx, consumerProcessID, providerDA)
 	if err != nil {
 		log.Fatalf("Unable to send start to consumer control plane: %v\n", err)
 	}
