@@ -101,8 +101,8 @@ func (ns *AuthService) CreateToken(processID string, pull bool) (string, error) 
 
 	userClaims := jwt.NewUserClaims(userPKey)
 	userClaims.Name = processID
-	// Restrict permissions
 
+	// Restrict permissions
 	if pull {
 		userClaims.Permissions.Sub.Allow.Add(processID + "." + ForwardSuffix)
 		userClaims.Permissions.Sub.Allow.Add(processID + "." + ReplySuffix)
