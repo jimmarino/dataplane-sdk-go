@@ -170,7 +170,6 @@ type DataFlow struct {
 	ErrorDetail            string
 }
 
-// State transition methods with validation
 func (df *DataFlow) TransitionToPreparing() error {
 	if df.State == Preparing {
 		return nil
