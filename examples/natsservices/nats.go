@@ -96,6 +96,5 @@ func (ns *NATSServer) InvalidateConnection(processID string) {
 			ns.natsLogger.Errorf("[NATS] Error disconnecting invalidated client: %v", err)
 		}
 		ns.natsLogger.Noticef("[NATS] Disconnected invalidated client")
-
 	}
 }
