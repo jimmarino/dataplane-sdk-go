@@ -56,4 +56,12 @@ func main() {
 	// Simulate ongoing processing
 	time.Sleep(10 * time.Second)
 
+	// Terminate the transfer and forcibly disconnect the client
+	err = cp.ProviderTerminate(ctx, providerProcessID, agreementID, datasetID)
+	if err != nil {
+		log.Fatalf("Unable to send terminate to provider control plane: %v\n", err)
+	}
+
+	// Simulate ongoing processing until terminate is completed
+	time.Sleep(2 * time.Second)
 }
