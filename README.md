@@ -8,8 +8,8 @@ qualities of service, recovery, and error handling.
 
 ### 1. Prepare
 
-- Purpose: Parepares for receiving data
-- Function: `Prepare(ctx context.Context, message DataFlowProvisionMessage) (*DataFlowResponseMessage, error)`
+- Purpose: Prepares for receiving data
+- Function: `Prepare(ctx context.Context, message DataFlowPrepareMessage) (*DataFlowResponseMessage, error)`
 - Returns: Response message or error
 
 ### 2. Start
@@ -42,6 +42,8 @@ qualities of service, recovery, and error handling.
 
 - Maintains different states for data flows:
     - Preparing
+    - Prepared
+    - Starting
     - Started
     - Terminated
     - Suspended
@@ -63,56 +65,4 @@ qualities of service, recovery, and error handling.
 
 ## Usage Example
 
-``` go
-import (
-    "context"
-    "fmt"
-)
-
-func main() {
-    // Create handlers for operations
-    provisionHandler := func(ctx context.Context, flow *DataFlow) (*DataFlowResponseMessage, error) {
-        // handle prepare logic
-    }
-
-    startHandler := func(ctx context.Context, flow *DataFlow) (*DataFlowResponseMessage, error) {
-        // handle start logic
-    }
-
-    terminateHandler := func(ctx context.Context, flow *DataFlow) error {
-        // handle termination logic
-    }
-
-    suspendHandler := func(ctx context.Context, flow *DataFlow) error {
-        // handle suspend logic
-    }
-
-    recoverHandler := func(ctx context.Context, flow *DataFlow) error {
-        // handle recovery logic
-    }
-
-    // Create a store implementation
-    store := // implementation of Data PlaneStore interface
-
-    // Create a transaction context implementation
-    trxContext := // implementation of TransactionContext interface
-
-    // Use the builder to create the SDK instance
-    sdk, err := NewDataPlaneSDKBuilder().
-        Store(store).
-        TransactionContext(trxContext).
-        OnPrepare(provisionHandler).
-        OnStart(startHandler).
-        OnTerminate(terminateHandler).
-        OnSuspend(suspendHandler).
-        OnRecover(recoverHandler).
-        Build()
-
-    if err != nil {
-        fmt.Printf("Failed to launch SDK: %w\n", err)
-        return
-    }
-
-    // hook handlers to the Data Plane Signaling API 
-}
-```
+See the examples.
