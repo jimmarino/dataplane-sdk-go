@@ -90,11 +90,6 @@ func (d *ProviderDataPlane) startProcessor(ctx context.Context,
 		return nil, errors.New("channel not found in endpoint properties")
 	}
 
-	err := flow.TransitionToStarted()
-	if err != nil {
-		return nil, err
-	}
-
 	// publisher close and reopen
 	d.publisherService.Terminate(channel)
 	d.publisherService.Start(flow.ID, endpoint, channel, token)
@@ -104,11 +99,6 @@ func (d *ProviderDataPlane) startProcessor(ctx context.Context,
 }
 
 func (d *ProviderDataPlane) terminateProcessor(_ context.Context, flow *dsdk.DataFlow) error {
-	err := flow.TransitionToTerminated()
-	if err != nil {
-		return err
-	}
-
 	d.publisherService.Terminate(flow.ID)
 
 	log.Printf("[Provider Data Plane] Terminated transfer for %s\n", flow.CounterPartyID)
@@ -116,11 +106,6 @@ func (d *ProviderDataPlane) terminateProcessor(_ context.Context, flow *dsdk.Dat
 }
 
 func (d *ProviderDataPlane) suspendProcessor(_ context.Context, flow *dsdk.DataFlow) error {
-	err := flow.TransitionToSuspended()
-	if err != nil {
-		return err
-	}
-
 	d.publisherService.Terminate(flow.ID)
 
 	log.Printf("[Provider Data Plane] Suspended transfer for %s\n", flow.CounterPartyID)

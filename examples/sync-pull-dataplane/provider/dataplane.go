@@ -120,11 +120,6 @@ func (d *ProviderDataPlane) startProcessor(ctx context.Context, flow *dsdk.DataF
 	}
 	d.tokenStore.Create(flow.DatasetID, tokenEntry) // token is pinned to the flow ID which is the transfer process id on the control plane
 
-	err := flow.TransitionToStarted()
-	if err != nil {
-		return nil, err
-	}
-
 	da, err := dsdk.NewDataAddressBuilder().
 		Property("token", token).
 		Property("endpoint", fmt.Sprintf(endpointUrl, common.ProviderDataPort)).
@@ -136,24 +131,16 @@ func (d *ProviderDataPlane) startProcessor(ctx context.Context, flow *dsdk.DataF
 	}
 
 	log.Printf("[Provider Data Plane] Started transfer for %s and returning access token\n", flow.CounterPartyID)
-	return &dsdk.DataFlowResponseMessage{State: flow.State, DataAddress: da}, nil
+	return &dsdk.DataFlowResponseMessage{State: dsdk.Started, DataAddress: da}, nil
 }
 
 func (d *ProviderDataPlane) suspendProcessor(ctx context.Context, flow *dsdk.DataFlow) error {
 	d.tokenStore.Delete(flow.ID) // invalidate token
-	err := flow.TransitionToSuspended()
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
 func (d *ProviderDataPlane) terminateProcessor(ctx context.Context, flow *dsdk.DataFlow) error {
 	d.tokenStore.Delete(flow.ID) // invalidate token
-	err := flow.TransitionToTerminated()
-	if err != nil {
-		return err
-	}
 	return nil
 }
 

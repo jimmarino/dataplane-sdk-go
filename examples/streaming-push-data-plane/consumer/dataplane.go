@@ -116,40 +116,24 @@ func (d *ConsumerDataPlane) prepareProcessor(_ context.Context,
 	if err != nil {
 		return nil, fmt.Errorf("failed to build data address: %w", err)
 	}
-	err = flow.TransitionToPrepared()
-	if err != nil {
-		return nil, err
-	}
 
 	log.Printf("[Consumer Data Plane] Prepare transfer for %s\n", flow.CounterPartyID)
-	return &dsdk.DataFlowResponseMessage{State: flow.State, DataAddress: da}, nil
+	return &dsdk.DataFlowResponseMessage{State: dsdk.Prepared, DataAddress: da}, nil
 }
 
 func (d *ConsumerDataPlane) startProcessor(_ context.Context,
 	flow *dsdk.DataFlow,
 	_ *dsdk.DataPlaneSDK,
 	options *dsdk.ProcessorOptions) (*dsdk.DataFlowResponseMessage, error) {
-	err := flow.TransitionToStarted()
-	if err != nil {
-		return nil, err
-	}
-	return &dsdk.DataFlowResponseMessage{State: flow.State, DataAddress: options.SourceDataAddress}, nil
+	return &dsdk.DataFlowResponseMessage{State: dsdk.Started, DataAddress: options.SourceDataAddress}, nil
 }
 
 func (d *ConsumerDataPlane) suspendProcessor(_ context.Context, flow *dsdk.DataFlow) error {
-	err := flow.TransitionToSuspended()
-	if err != nil {
-		return err
-	}
 	log.Printf("[Consumer Data Plane] Suspending transfer for %s\n", flow.CounterPartyID)
 	return d.invalidate(flow)
 }
 
 func (d *ConsumerDataPlane) terminateProcessor(_ context.Context, flow *dsdk.DataFlow) error {
-	err := flow.TransitionToTerminated()
-	if err != nil {
-		return err
-	}
 	log.Printf("[Consumer Data Plane] Terminating transfer for %s\n", flow.CounterPartyID)
 	return d.invalidate(flow)
 }

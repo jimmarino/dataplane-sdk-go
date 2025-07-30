@@ -94,10 +94,6 @@ func (d *ProviderDataPlane) startProcessor(_ context.Context,
 		// Perform de-duplication. This code path is not needed, but it demonstrates how de-deduplication can be handled
 	}
 
-	err := flow.TransitionToStarting()
-	if err != nil {
-		return nil, err
-	}
 	token, err := d.authService.CreateToken(flow.ID, true)
 	if err != nil {
 		return nil, err
@@ -115,36 +111,24 @@ func (d *ProviderDataPlane) startProcessor(_ context.Context,
 	if err != nil {
 		return nil, fmt.Errorf("failed to build data address: %w", err)
 	}
-	err = flow.TransitionToStarted()
-	if err != nil {
-		return nil, err
-	}
 
 	// Start publishing events. In a real system, this could be done via a queue or notification mechanism
 	d.publisherService.Start(channel)
 
 	log.Printf("[Provider Data Plane] Starting transfer for %s\n", flow.CounterPartyID)
-	return &dsdk.DataFlowResponseMessage{State: flow.State, DataAddress: da}, nil
+	return &dsdk.DataFlowResponseMessage{State: dsdk.Started, DataAddress: da}, nil
 }
 
 func (d *ProviderDataPlane) suspendProcessor(_ context.Context, flow *dsdk.DataFlow) error {
-	err := flow.TransitionToSuspended()
 	channel := flow.ID + "." + natsservices.ForwardSuffix
 	d.publisherService.Terminate(channel)
-	if err != nil {
-		return err
-	}
 	log.Printf("[Provider Data Plane] Suspending transfer for %s\n", flow.CounterPartyID)
 	return d.invalidate(flow)
 }
 
 func (d *ProviderDataPlane) terminateProcessor(_ context.Context, flow *dsdk.DataFlow) error {
-	err := flow.TransitionToTerminated()
 	channel := flow.ID + "." + natsservices.ForwardSuffix
 	d.publisherService.Terminate(channel)
-	if err != nil {
-		return err
-	}
 	log.Printf("[Provider Data Plane] Terminating transfer for %s\n", flow.CounterPartyID)
 	return d.invalidate(flow)
 }

@@ -92,14 +92,9 @@ func (d *ConsumerDataPlane) startProcessor(_ context.Context,
 		return nil, errors.New("channel not found in endpoint properties")
 	}
 
-	err := flow.TransitionToStarted()
-	if err != nil {
-		return nil, err
-	}
-
 	d.eventSubscriber.CloseConnection(flow.ID) // Close any existing connection
 
-	err = d.eventSubscriber.Subscribe(channel, endpoint, channel, token)
+	err := d.eventSubscriber.Subscribe(channel, endpoint, channel, token)
 	if err != nil {
 		return nil, err
 	}
@@ -108,20 +103,12 @@ func (d *ConsumerDataPlane) startProcessor(_ context.Context,
 }
 
 func (d *ConsumerDataPlane) terminateProcessor(_ context.Context, flow *dsdk.DataFlow) error {
-	err := flow.TransitionToTerminated()
-	if err != nil {
-		return err
-	}
 	d.eventSubscriber.CloseConnection(flow.ID)
 	log.Printf("[Consumer Data Plane] Terminated transfer for %s\n", flow.CounterPartyID)
 	return nil
 }
 
 func (d *ConsumerDataPlane) suspendProcessor(_ context.Context, flow *dsdk.DataFlow) error {
-	err := flow.TransitionToSuspended()
-	if err != nil {
-		return err
-	}
 	d.eventSubscriber.CloseConnection(flow.ID)
 	log.Printf("[Consumer Data Plane] Suspended transfer for %s\n", flow.CounterPartyID)
 	return nil

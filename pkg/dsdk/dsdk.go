@@ -203,14 +203,15 @@ func (dsdk *DataPlaneSDK) Terminate(ctx context.Context, processID string) error
 			return nil // duplicate message, skip processing
 		}
 
+		if err := dsdk.onTerminate(ctx, flow); err != nil {
+			return fmt.Errorf("terminating data flow %s: %w", flow.ID, err)
+		}
+
 		err = flow.TransitionToTerminated()
 		if err != nil {
 			return err
 		}
 
-		if err := dsdk.onTerminate(ctx, flow); err != nil {
-			return fmt.Errorf("terminating data flow %s: %w", flow.ID, err)
-		}
 		err = dsdk.Store.Save(ctx, flow)
 		if err != nil {
 			return fmt.Errorf("terminating data flow %s: %w", flow.ID, err)
@@ -234,13 +235,14 @@ func (dsdk *DataPlaneSDK) Suspend(ctx context.Context, processID string) error {
 			return nil // duplicate message, skip processing
 		}
 
+		if err := dsdk.onSuspend(ctx, flow); err != nil {
+			return fmt.Errorf("suspending data flow %s: %w", flow.ID, err)
+		}
 		err = flow.TransitionToSuspended()
 		if err != nil {
 			return err
 		}
-		if err := dsdk.onSuspend(ctx, flow); err != nil {
-			return fmt.Errorf("suspending data flow %s: %w", flow.ID, err)
-		}
+
 		err = dsdk.Store.Save(ctx, flow)
 		if err != nil {
 			return fmt.Errorf("suspending data flow %s: %w", flow.ID, err)
