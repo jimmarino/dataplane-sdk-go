@@ -14,7 +14,7 @@ package main
 
 import (
 	"github.com/metaform/dataplane-sdk-go/examples/streaming"
-	"github.com/metaform/dataplane-sdk-go/examples/streaming-push-data-plane/launcher"
+	"github.com/metaform/dataplane-sdk-go/examples/streaming-push-dataplane/launcher"
 )
 
 func main() {

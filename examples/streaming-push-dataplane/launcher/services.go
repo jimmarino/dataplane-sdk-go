@@ -14,8 +14,8 @@ package launcher
 
 import (
 	"github.com/metaform/dataplane-sdk-go/examples/natsservices"
-	"github.com/metaform/dataplane-sdk-go/examples/streaming-push-data-plane/consumer"
-	"github.com/metaform/dataplane-sdk-go/examples/streaming-push-data-plane/provider"
+	"github.com/metaform/dataplane-sdk-go/examples/streaming-push-dataplane/consumer"
+	"github.com/metaform/dataplane-sdk-go/examples/streaming-push-dataplane/provider"
 	"log"
 )
 
