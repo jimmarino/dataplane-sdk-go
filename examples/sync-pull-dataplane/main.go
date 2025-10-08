@@ -46,7 +46,7 @@ func main() {
 	consumerProcessID := uuid.NewString()
 	_, err = cp.ConsumerPrepare(ctx, consumerProcessID, agreementID, datasetID)
 	if err != nil {
-		log.Fatalf("Unable to send prepate to consumer control plane: %v\n", err)
+		log.Fatalf("Unable to send prepare to consumer control plane: %v\n", err)
 	}
 
 	// Signal to the provider data plane

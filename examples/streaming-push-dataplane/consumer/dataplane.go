@@ -40,7 +40,8 @@ func NewDataPlane(authService *natsservices.AuthService,
 	natsUrl string,
 	eventSubscriber *natsservices.EventSubscriber) (*ConsumerDataPlane, error) {
 
-	providerDataPlane := &ConsumerDataPlane{authService: authService,
+	providerDataPlane := &ConsumerDataPlane{
+		authService:           authService,
 		connectionInvalidator: invalidator,
 		natsUrl:               natsUrl,
 		eventSubscriber:       eventSubscriber}
