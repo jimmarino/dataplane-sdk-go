@@ -470,9 +470,9 @@ func newCallback() dsdk.CallbackURL {
 }
 
 func newSdk(db *sql.DB) (*dsdk.DataPlaneSDK, error) {
-	sdk, err := dsdk.NewDataPlaneSDKBuilder().
-		Store(postgres.NewStore(db)).
-		TransactionContext(postgres.NewDBTransactionContext(db)).
-		Build()
+	sdk, err := dsdk.NewDataPlaneSDK(
+		dsdk.WithStore(postgres.NewStore(db)),
+		dsdk.WithTransactionContext(postgres.NewDBTransactionContext(db)),
+	)
 	return sdk, err
 }

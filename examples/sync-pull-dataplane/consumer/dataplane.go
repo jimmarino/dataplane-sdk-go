@@ -47,14 +47,13 @@ type ConsumerDataPlane struct {
 
 func NewDataPlane() (*ConsumerDataPlane, error) {
 	dataplane := &ConsumerDataPlane{tokenStore: common.NewStore[tokenEntry]()}
-	sdk, err := dsdk.NewDataPlaneSDKBuilder().
-		Store(memory.NewInMemoryStore()).
-		TransactionContext(memory.InMemoryTrxContext{}).
-		OnPrepare(dataplane.prepareProcessor).
-		OnStart(dataplane.startProcessor).
-		OnTerminate(dataplane.noopHandler).
-		OnSuspend(dataplane.noopHandler).
-		Build()
+
+	sdk, err := dsdk.NewDataPlaneSDK(
+		dsdk.WithStore(memory.NewInMemoryStore()),
+		dsdk.WithTransactionContext(memory.InMemoryTrxContext{}),
+		dsdk.WithPrepareProcessor(dataplane.prepareProcessor),
+		dsdk.WithStartProcessor(dataplane.startProcessor),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -107,10 +106,6 @@ func (d *ConsumerDataPlane) startProcessor(_ context.Context,
 	token := options.SourceDataAddress.Properties["token"].(string)
 	d.tokenStore.Create(flow.DatasetID, tokenEntry{datasetID: flow.DatasetID, token: token, endpoint: endpoint})
 	return &dsdk.DataFlowResponseMessage{State: dsdk.Started}, nil
-}
-
-func (d *ConsumerDataPlane) noopHandler(context.Context, *dsdk.DataFlow) error {
-	return nil
 }
 
 func (d *ConsumerDataPlane) getEndpointToken(w http.ResponseWriter, r *http.Request) {

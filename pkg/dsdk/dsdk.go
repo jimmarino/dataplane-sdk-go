@@ -325,55 +325,73 @@ func (dsdk *DataPlaneSDK) execute(ctx context.Context, callback func(ctx2 contex
 	}
 }
 
-type DataPlaneSDKBuilder struct {
-	sdk *DataPlaneSDK
-}
+// DataPlaneSDKOption configures a DataPlaneSDK instance
+type DataPlaneSDKOption func(*DataPlaneSDK)
 
-func NewDataPlaneSDKBuilder() *DataPlaneSDKBuilder {
-	return &DataPlaneSDKBuilder{
-		sdk: &DataPlaneSDK{},
+func WithStore(store DataplaneStore) DataPlaneSDKOption {
+	return func(sdk *DataPlaneSDK) {
+		sdk.Store = store
 	}
 }
 
-func (b *DataPlaneSDKBuilder) Store(store DataplaneStore) *DataPlaneSDKBuilder {
-	b.sdk.Store = store
-	return b
+func WithTransactionContext(trxContext TransactionContext) DataPlaneSDKOption {
+	return func(sdk *DataPlaneSDK) {
+		sdk.TrxContext = trxContext
+	}
 }
 
-func (b *DataPlaneSDKBuilder) TransactionContext(trxContext TransactionContext) *DataPlaneSDKBuilder {
-	b.sdk.TrxContext = trxContext
-	return b
+func WithMonitor(monitor LogMonitor) DataPlaneSDKOption {
+	return func(sdk *DataPlaneSDK) {
+		sdk.Monitor = monitor
+	}
 }
 
-func (b *DataPlaneSDKBuilder) OnPrepare(processor DataFlowProcessor) *DataPlaneSDKBuilder {
-	b.sdk.onPrepare = processor
-	return b
+func WithPrepareProcessor(processor DataFlowProcessor) DataPlaneSDKOption {
+	return func(sdk *DataPlaneSDK) {
+		sdk.onPrepare = processor
+	}
 }
 
-func (b *DataPlaneSDKBuilder) OnStart(processor DataFlowProcessor) *DataPlaneSDKBuilder {
-	b.sdk.onStart = processor
-	return b
+func WithStartProcessor(processor DataFlowProcessor) DataPlaneSDKOption {
+	return func(sdk *DataPlaneSDK) {
+		sdk.onStart = processor
+	}
 }
 
-func (b *DataPlaneSDKBuilder) OnTerminate(handler DataFlowHandler) *DataPlaneSDKBuilder {
-	b.sdk.onTerminate = handler
-	return b
+func WithTerminateProcessor(handler DataFlowHandler) DataPlaneSDKOption {
+	return func(sdk *DataPlaneSDK) {
+		sdk.onTerminate = handler
+	}
 }
 
-func (b *DataPlaneSDKBuilder) OnSuspend(handler DataFlowHandler) *DataPlaneSDKBuilder {
-	b.sdk.onSuspend = handler
-	return b
+func WithSuspendProcessor(handler DataFlowHandler) DataPlaneSDKOption {
+	return func(sdk *DataPlaneSDK) {
+		sdk.onSuspend = handler
+	}
 }
 
-func (b *DataPlaneSDKBuilder) Build() (*DataPlaneSDK, error) {
-	if b.sdk.Store == nil {
+func NewDataPlaneSDK(options ...DataPlaneSDKOption) (*DataPlaneSDK, error) {
+	sdk := &DataPlaneSDK{}
+
+	// Apply all options
+	for _, opt := range options {
+		opt(sdk)
+	}
+
+	// Validate required fields
+	if sdk.Store == nil {
 		return nil, errors.New("store is required")
 	}
-	if b.sdk.TrxContext == nil {
+	if sdk.TrxContext == nil {
 		return nil, errors.New("transaction context is required")
 	}
-	if b.sdk.onPrepare == nil {
-		b.sdk.onPrepare = func(context context.Context, flow *DataFlow, sdk *DataPlaneSDK, options *ProcessorOptions) (*DataFlowResponseMessage, error) {
+
+	// Set defaults for optional fields
+	if sdk.Monitor == nil {
+		sdk.Monitor = defaultLogMonitor{}
+	}
+	if sdk.onPrepare == nil {
+		sdk.onPrepare = func(context context.Context, flow *DataFlow, sdk *DataPlaneSDK, options *ProcessorOptions) (*DataFlowResponseMessage, error) {
 			return &DataFlowResponseMessage{
 				DataplaneID: "TODO_REPLACE_ME",
 				DataAddress: &flow.DestinationDataAddress,
@@ -381,8 +399,8 @@ func (b *DataPlaneSDKBuilder) Build() (*DataPlaneSDK, error) {
 				Error:       ""}, nil
 		}
 	}
-	if b.sdk.onStart == nil {
-		b.sdk.onStart = func(context context.Context, flow *DataFlow, sdk *DataPlaneSDK, options *ProcessorOptions) (*DataFlowResponseMessage, error) {
+	if sdk.onStart == nil {
+		sdk.onStart = func(context context.Context, flow *DataFlow, sdk *DataPlaneSDK, options *ProcessorOptions) (*DataFlowResponseMessage, error) {
 			return &DataFlowResponseMessage{
 				State:       Started,
 				DataplaneID: "TODO_REPLACE_ME",
@@ -390,20 +408,18 @@ func (b *DataPlaneSDKBuilder) Build() (*DataPlaneSDK, error) {
 				Error:       ""}, nil
 		}
 	}
-	if b.sdk.onTerminate == nil {
-		b.sdk.onTerminate = func(context context.Context, flow *DataFlow) error {
+	if sdk.onTerminate == nil {
+		sdk.onTerminate = func(context context.Context, flow *DataFlow) error {
 			return nil
 		}
 	}
-	if b.sdk.onSuspend == nil {
-		b.sdk.onSuspend = func(context context.Context, flow *DataFlow) error {
+	if sdk.onSuspend == nil {
+		sdk.onSuspend = func(context context.Context, flow *DataFlow) error {
 			return nil
 		}
 	}
-	if b.sdk.Monitor == nil {
-		b.sdk.Monitor = defaultLogMonitor{}
-	}
-	return b.sdk, nil
+
+	return sdk, nil
 }
 
 type defaultLogMonitor struct {

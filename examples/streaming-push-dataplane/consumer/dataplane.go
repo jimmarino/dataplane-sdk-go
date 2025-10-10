@@ -40,28 +40,27 @@ func NewDataPlane(authService *natsservices.AuthService,
 	natsUrl string,
 	eventSubscriber *natsservices.EventSubscriber) (*ConsumerDataPlane, error) {
 
-	providerDataPlane := &ConsumerDataPlane{
+	dataPlane := &ConsumerDataPlane{
 		authService:           authService,
 		connectionInvalidator: invalidator,
 		natsUrl:               natsUrl,
 		eventSubscriber:       eventSubscriber}
 
-	builder := dsdk.NewDataPlaneSDKBuilder()
-	store := memory.NewInMemoryStore()
-	sdk, err := builder.Store(store).
-		TransactionContext(memory.InMemoryTrxContext{}).
-		OnPrepare(providerDataPlane.prepareProcessor).
-		OnStart(providerDataPlane.startProcessor).
-		OnSuspend(providerDataPlane.suspendProcessor).
-		OnTerminate(providerDataPlane.terminateProcessor).
-		Build()
+	sdk, err := dsdk.NewDataPlaneSDK(
+		dsdk.WithStore(memory.NewInMemoryStore()),
+		dsdk.WithTransactionContext(memory.InMemoryTrxContext{}),
+		dsdk.WithPrepareProcessor(dataPlane.prepareProcessor),
+		dsdk.WithStartProcessor(dataPlane.startProcessor),
+		dsdk.WithSuspendProcessor(dataPlane.suspendProcessor),
+		dsdk.WithTerminateProcessor(dataPlane.terminateProcessor),
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	providerDataPlane.api = dsdk.NewDataPlaneApi(sdk)
+	dataPlane.api = dsdk.NewDataPlaneApi(sdk)
 
-	return providerDataPlane, nil
+	return dataPlane, nil
 }
 
 func (d *ConsumerDataPlane) Init() {

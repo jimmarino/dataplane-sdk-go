@@ -46,15 +46,14 @@ func NewDataPlane() (*ProviderDataPlane, error) {
 		tokenStore: common.NewStore[tokenEntry](),
 	}
 
-	builder := dsdk.NewDataPlaneSDKBuilder()
-	store := memory.NewInMemoryStore()
-	sdk, err := builder.Store(store).
-		TransactionContext(memory.InMemoryTrxContext{}).
-		OnPrepare(providerDataPlane.prepareProcessor).
-		OnStart(providerDataPlane.startProcessor).
-		OnSuspend(providerDataPlane.suspendProcessor).
-		OnTerminate(providerDataPlane.terminateProcessor).
-		Build()
+	sdk, err := dsdk.NewDataPlaneSDK(
+		dsdk.WithStore(memory.NewInMemoryStore()),
+		dsdk.WithTransactionContext(memory.InMemoryTrxContext{}),
+		dsdk.WithPrepareProcessor(providerDataPlane.prepareProcessor),
+		dsdk.WithStartProcessor(providerDataPlane.startProcessor),
+		dsdk.WithSuspendProcessor(providerDataPlane.suspendProcessor),
+		dsdk.WithTerminateProcessor(providerDataPlane.terminateProcessor),
+	)
 	if err != nil {
 		return nil, err
 	}
