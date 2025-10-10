@@ -33,14 +33,15 @@ type ProviderDataPlane struct {
 
 func NewDataPlane(publisherService *EventPublisherService) (*ProviderDataPlane, error) {
 	dataplane := &ProviderDataPlane{publisherService: publisherService}
-	sdk, err := dsdk.NewDataPlaneSDKBuilder().
-		Store(memory.NewInMemoryStore()).
-		TransactionContext(memory.InMemoryTrxContext{}).
-		OnPrepare(dataplane.prepareProcessor).
-		OnStart(dataplane.startProcessor).
-		OnTerminate(dataplane.terminateProcessor).
-		OnSuspend(dataplane.noopHandler).
-		Build()
+	sdk, err := dsdk.NewDataPlaneSDK(
+		dsdk.WithStore(memory.NewInMemoryStore()),
+		dsdk.WithTransactionContext(memory.InMemoryTrxContext{}),
+		dsdk.WithPrepareProcessor(dataplane.prepareProcessor),
+		dsdk.WithStartProcessor(dataplane.startProcessor),
+		dsdk.WithSuspendProcessor(dataplane.suspendProcessor),
+		dsdk.WithTerminateProcessor(dataplane.terminateProcessor),
+	)
+
 	if err != nil {
 		return nil, err
 	}
@@ -109,10 +110,6 @@ func (d *ProviderDataPlane) suspendProcessor(_ context.Context, flow *dsdk.DataF
 	d.publisherService.Terminate(flow.ID)
 
 	log.Printf("[Provider Data Plane] Suspended transfer for %s\n", flow.CounterPartyID)
-	return nil
-}
-
-func (d *ProviderDataPlane) noopHandler(context.Context, *dsdk.DataFlow) error {
 	return nil
 }
 

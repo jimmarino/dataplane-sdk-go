@@ -33,14 +33,13 @@ type ConsumerDataPlane struct {
 
 func NewDataPlane(eventSubscriber *natsservices.EventSubscriber) (*ConsumerDataPlane, error) {
 	dataplane := &ConsumerDataPlane{eventSubscriber: eventSubscriber}
-	sdk, err := dsdk.NewDataPlaneSDKBuilder().
-		Store(memory.NewInMemoryStore()).
-		TransactionContext(memory.InMemoryTrxContext{}).
-		OnPrepare(dataplane.prepareProcessor).
-		OnStart(dataplane.startProcessor).
-		OnTerminate(dataplane.terminateProcessor).
-		OnSuspend(dataplane.noopHandler).
-		Build()
+
+	sdk, err := dsdk.NewDataPlaneSDK(
+		dsdk.WithStore(memory.NewInMemoryStore()),
+		dsdk.WithTransactionContext(memory.InMemoryTrxContext{}),
+		dsdk.WithPrepareProcessor(dataplane.prepareProcessor),
+		dsdk.WithStartProcessor(dataplane.startProcessor),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -111,10 +110,6 @@ func (d *ConsumerDataPlane) terminateProcessor(_ context.Context, flow *dsdk.Dat
 func (d *ConsumerDataPlane) suspendProcessor(_ context.Context, flow *dsdk.DataFlow) error {
 	d.eventSubscriber.CloseConnection(flow.ID)
 	log.Printf("[Consumer Data Plane] Suspended transfer for %s\n", flow.CounterPartyID)
-	return nil
-}
-
-func (d *ConsumerDataPlane) noopHandler(context.Context, *dsdk.DataFlow) error {
 	return nil
 }
 
