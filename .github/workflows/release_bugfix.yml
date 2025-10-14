@@ -92,19 +92,8 @@ jobs:
 
     steps:
       - name: Create GitHub Release
-        uses: ncipollo/release-action@v1
+        uses: ./.github/actions/create-release
         with:
           tag: ${{ needs.create-tag.outputs.tag }}
-          name: Release ${{ needs.create-tag.outputs.tag }}
-          generateReleaseNotes: true
-          makeLatest: ${{ needs.create-tag.outputs.is_latest == 'true' }}
-          body: |
-            NuGet packages published to GitHub Packages.
-
-            ### Installation
-            ```bash
-            dotnet add package DataPlane.Sdk.Core --version ${{ needs.create-tag.outputs.version }}
-            dotnet add package DataPlane.Sdk.Api --version ${{ needs.create-tag.outputs.version }}
-            ```
-          draft: false
-          prerelease: false
+          version: ${{ needs.create-tag.outputs.version }}
+          repository: ${{ github.repository }}
