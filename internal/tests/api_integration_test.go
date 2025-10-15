@@ -35,7 +35,7 @@ func newServerWithSdk(t *testing.T, sdk *dsdk.DataPlaneSDK) http.Handler {
 	r := chi.NewRouter()
 
 	r.Post("/dataflows/start", sdkApi.Start)
-	r.Post("/dataflows/{id}/start", func(writer http.ResponseWriter, request *http.Request) {
+	r.Post("/dataflows/{id}/started", func(writer http.ResponseWriter, request *http.Request) {
 		id := chi.URLParam(request, "id")
 		sdkApi.StartById(writer, request, id)
 	})
@@ -51,6 +51,11 @@ func newServerWithSdk(t *testing.T, sdk *dsdk.DataPlaneSDK) http.Handler {
 	r.Get("/dataflows/{id}/status", func(writer http.ResponseWriter, request *http.Request) {
 		id := chi.URLParam(request, "id")
 		sdkApi.Status(id, writer, request)
+	})
+
+	r.Post("/dataflows/{id}/completed", func(writer http.ResponseWriter, request *http.Request) {
+		id := chi.URLParam(request, "id")
+		sdkApi.Complete(id, writer, request)
 	})
 	return r
 }
@@ -111,7 +116,7 @@ func Test_StartByID_WhenNotFound(t *testing.T) {
 	requestBody, err := serialize(newStartByIdMessage())
 	assert.NoError(t, err)
 
-	req, err := http.NewRequest(http.MethodPost, "/dataflows/"+id+"/start", bytes.NewBuffer(requestBody))
+	req, err := http.NewRequest(http.MethodPost, "/dataflows/"+id+"/started", bytes.NewBuffer(requestBody))
 	assert.NoError(t, err)
 
 	rr := httptest.NewRecorder()
@@ -131,14 +136,14 @@ func Test_StartByID_WhenStartedOrStarting(t *testing.T) {
 	for _, state := range states {
 		id := uuid.New().String()
 		store := postgres.NewStore(database)
-		flow, err := newFlowBuilder().ID(id).State(state).Build()
+		flow, err := newFlowBuilder().ID(id).State(state).Consumer(true).Build()
 		assert.NoError(t, err)
 		assert.NoError(t, store.Create(ctx, flow))
 
 		requestBody, err := serialize(newStartByIdMessage())
 		assert.NoError(t, err)
 
-		req, err := http.NewRequest(http.MethodPost, "/dataflows/"+id+"/start", bytes.NewBuffer(requestBody))
+		req, err := http.NewRequest(http.MethodPost, "/dataflows/"+id+"/started", bytes.NewBuffer(requestBody))
 		assert.NoError(t, err)
 
 		rr := httptest.NewRecorder()
@@ -181,7 +186,7 @@ func Test_StartByID_WhenPrepared(t *testing.T) {
 		requestBody, err := serialize(newStartByIdMessage())
 		assert.NoError(t, err)
 
-		req, err := http.NewRequest(http.MethodPost, "/dataflows/"+id+"/start", bytes.NewBuffer(requestBody))
+		req, err := http.NewRequest(http.MethodPost, "/dataflows/"+id+"/started", bytes.NewBuffer(requestBody))
 		assert.NoError(t, err)
 
 		rr := httptest.NewRecorder()
@@ -196,16 +201,21 @@ func Test_StartByID_WhenPrepared(t *testing.T) {
 }
 
 func Test_StartByID_MissingSourceAddress(t *testing.T) {
-	requestBody, err := serialize(dsdk.DataFlowStartByIdMessage{})
+	id := uuid.New().String()
+	store := postgres.NewStore(database)
+	flow, err := newFlowBuilder().ID(id).State(dsdk.Prepared).Consumer(true).Build()
+	assert.NoError(t, err)
+	assert.NoError(t, store.Create(ctx, flow))
+	requestBody, err := serialize(dsdk.DataFlowStartedNotificationMessage{})
 	assert.NoError(t, err)
 
-	req, err := http.NewRequest(http.MethodPost, "/dataflows/some-id/start", bytes.NewBuffer(requestBody))
+	req, err := http.NewRequest(http.MethodPost, "/dataflows/"+flow.ID+"/started", bytes.NewBuffer(requestBody))
 	assert.NoError(t, err)
 
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 
-	assert.Equal(t, http.StatusBadRequest, rr.Code)
+	assert.Equal(t, http.StatusOK, rr.Code)
 }
 
 func Test_Prepare(t *testing.T) {
@@ -365,6 +375,51 @@ func Test_Terminate_WhenNotFound(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, rr.Code)
 }
 
+func Test_Complete(t *testing.T) {
+	id := uuid.New().String()
+	flow, err := newFlowBuilder().ID(id).State(dsdk.Started).Build()
+	assert.NoError(t, err)
+	store := postgres.NewStore(database)
+	err = store.Create(ctx, flow)
+	assert.NoError(t, err)
+
+	req, err := http.NewRequest(http.MethodPost, "/dataflows/"+flow.ID+"/completed", strings.NewReader(""))
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	byId, err := store.FindById(ctx, id)
+	assert.NoError(t, err)
+	assert.Equal(t, dsdk.Completed, byId.State)
+}
+
+func Test_Complete_NotFound(t *testing.T) {
+	req, err := http.NewRequest(http.MethodPost, "/dataflows/not-exist/completed", strings.NewReader(""))
+	assert.NoError(t, err)
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusNotFound, rr.Code)
+}
+
+func Test_Complete_WrongState(t *testing.T) {
+	id := uuid.New().String()
+	flow, err := newFlowBuilder().ID(id).State(dsdk.Terminated).Build()
+	assert.NoError(t, err)
+	store := postgres.NewStore(database)
+	err = store.Create(ctx, flow)
+	assert.NoError(t, err)
+
+	req, err := http.NewRequest(http.MethodPost, "/dataflows/"+flow.ID+"/completed", strings.NewReader(""))
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+	byId, err := store.FindById(ctx, id)
+	assert.NoError(t, err)
+	assert.NotEqual(t, dsdk.Completed, byId.State)
+}
+
 func Test_GetStatus(t *testing.T) {
 	id := uuid.New().String()
 	flow, err := newFlowBuilder().ID(id).State(dsdk.Started).Build()
@@ -412,28 +467,27 @@ func serialize(obj any) ([]byte, error) {
 func newStartMessage() dsdk.DataFlowStartMessage {
 	return dsdk.DataFlowStartMessage{
 		DataFlowBaseMessage: dsdk.DataFlowBaseMessage{
-			MessageID:              uuid.New().String(),
-			ParticipantID:          uuid.New().String(),
-			CounterPartyID:         uuid.New().String(),
-			DataspaceContext:       uuid.New().String(),
-			ProcessID:              uuid.New().String(),
-			AgreementID:            uuid.New().String(),
-			DatasetID:              uuid.New().String(),
-			CallbackAddress:        newCallback(),
-			TransferType:           newTransferType(),
-			DestinationDataAddress: dsdk.DataAddress{},
-		},
-		SourceDataAddress: &dsdk.DataAddress{
-			Properties: map[string]any{
-				"foo": "bar",
+			MessageID:        uuid.New().String(),
+			ParticipantID:    uuid.New().String(),
+			CounterPartyID:   uuid.New().String(),
+			DataspaceContext: uuid.New().String(),
+			ProcessID:        uuid.New().String(),
+			AgreementID:      uuid.New().String(),
+			DatasetID:        uuid.New().String(),
+			CallbackAddress:  newCallback(),
+			TransferType:     newTransferType(),
+			DataAddress: &dsdk.DataAddress{
+				Properties: map[string]any{
+					"foo": "bar",
+				},
 			},
 		},
 	}
 }
 
-func newStartByIdMessage() dsdk.DataFlowStartByIdMessage {
-	return dsdk.DataFlowStartByIdMessage{
-		SourceDataAddress: &dsdk.DataAddress{
+func newStartByIdMessage() dsdk.DataFlowStartedNotificationMessage {
+	return dsdk.DataFlowStartedNotificationMessage{
+		DataAddress: &dsdk.DataAddress{
 			Properties: map[string]any{
 				"foo": "bar",
 			},
@@ -451,16 +505,16 @@ func newTransferType() dsdk.TransferType {
 func newPrepareMessage() dsdk.DataFlowPrepareMessage {
 	return dsdk.DataFlowPrepareMessage{
 		DataFlowBaseMessage: dsdk.DataFlowBaseMessage{
-			MessageID:              uuid.New().String(),
-			ParticipantID:          uuid.New().String(),
-			CounterPartyID:         uuid.New().String(),
-			DataspaceContext:       uuid.New().String(),
-			ProcessID:              uuid.New().String(),
-			AgreementID:            uuid.New().String(),
-			DatasetID:              uuid.New().String(),
-			CallbackAddress:        newCallback(),
-			TransferType:           newTransferType(),
-			DestinationDataAddress: dsdk.DataAddress{},
+			MessageID:        uuid.New().String(),
+			ParticipantID:    uuid.New().String(),
+			CounterPartyID:   uuid.New().String(),
+			DataspaceContext: uuid.New().String(),
+			ProcessID:        uuid.New().String(),
+			AgreementID:      uuid.New().String(),
+			DatasetID:        uuid.New().String(),
+			CallbackAddress:  newCallback(),
+			TransferType:     newTransferType(),
+			DataAddress:      &dsdk.DataAddress{},
 		},
 	}
 }

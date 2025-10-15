@@ -104,7 +104,7 @@ func (d *DataPlaneApi) StartById(w http.ResponseWriter, r *http.Request, id stri
 		http.Error(w, "Invalid request method", http.StatusBadRequest)
 		return
 	}
-	var startMessage DataFlowStartByIdMessage
+	var startMessage DataFlowStartedNotificationMessage
 
 	if err := json.NewDecoder(r.Body).Decode(&startMessage); err != nil {
 		d.decodingError(w, err)
@@ -218,6 +218,19 @@ func (d *DataPlaneApi) Status(processID string, w http.ResponseWriter, r *http.R
 	d.writeResponse(w, http.StatusOK, response)
 }
 
+func (d *DataPlaneApi) Complete(processID string, w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Invalid request method", http.StatusBadRequest)
+		return
+	}
+	err := d.sdk.Complete(r.Context(), processID)
+	if err != nil {
+		d.handleError(err, w)
+		return
+	}
+	d.writeResponse(w, http.StatusOK, nil)
+}
+
 func (d *DataPlaneApi) decodingError(w http.ResponseWriter, err error) {
 	id := uuid.NewString()
 	d.sdk.Monitor.Printf("Error decoding flow [%s]: %v\n", id, err)
@@ -228,7 +241,7 @@ func (d *DataPlaneApi) decodingError(w http.ResponseWriter, err error) {
 func (d *DataPlaneApi) handleError(err error, w http.ResponseWriter) {
 
 	switch {
-	case errors.Is(err, ErrValidation), errors.Is(err, ErrInvalidTransition):
+	case errors.Is(err, ErrValidation), errors.Is(err, ErrInvalidTransition), errors.Is(err, ErrInvalidInput):
 		d.badRequest(err.Error(), w)
 	case errors.Is(err, ErrNotFound):
 		d.writeResponse(w, http.StatusNotFound, &DataFlowResponseMessage{Error: err.Error()})
